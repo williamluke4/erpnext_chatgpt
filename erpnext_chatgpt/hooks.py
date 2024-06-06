@@ -8,11 +8,20 @@ app_email = "williamluke4@gmail.com"
 app_license = "MIT"
 
 # Include JS and CSS files in header of desk.html
-app_include_js = "/assets/openai_integration/js/frontend.js"
-
-# Home Pages
-# application home page (will override Website Settings)
-# home_page = "login"
+app_include_js = "/assets/erpnext_chatgpt/js/frontend.js"
 
 # Doctype JavaScript
-doctype_js = {"OpenAI Settings": "public/js/openai_settings.js"}
+doctype_js = {"OpenAI Settings": "doctype/openai_settings/openai_settings.js"}
+
+# Fixtures (to include the custom DocType)
+fixtures = [
+    "Custom Field",
+    "Property Setter",
+    "Custom Script",
+    "Print Format",
+    "Report",
+    "Workflow",
+    "Role",
+    "Workspace",
+    "DocType",
+]

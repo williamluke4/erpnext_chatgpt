@@ -4,8 +4,11 @@
 *.swp
 *:Zone.Identifier
 tags
-
+exported.txt
+export.sh
 **/.vscode
 /.idea
 /node_modules
-/__pycache__
+/__pycache__./exported.txt
+./exported.txt
+

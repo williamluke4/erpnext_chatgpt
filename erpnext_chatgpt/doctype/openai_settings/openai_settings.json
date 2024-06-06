@@ -1,0 +1,23 @@
+{
+  "doctype": "DocType",
+  "name": "OpenAI Settings",
+  "module": "OpenAI Integration",
+  "custom": 1,
+  "fields": [
+    {
+      "fieldname": "api_key",
+      "fieldtype": "Data",
+      "label": "API Key",
+      "reqd": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    }
+  ]
+}
