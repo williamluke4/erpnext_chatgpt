@@ -4,8 +4,11 @@ import openai
 import json
 from erpnext_chatgpt.tools import get_tools, available_functions
 
+# Define a pre-prompt to set the context or provide specific instructions
+PRE_PROMPT = "You are an AI assistant integrated with ERPNext. Please provide accurate and helpful responses based on the following questions and data provided by the user."
+
 @frappe.whitelist()
-def ask_openai_question(question):
+def ask_openai_question(conversation):
     api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
     if not api_key:
         return {"error": "OpenAI API key is not set in OpenAI Settings."}
@@ -14,29 +17,31 @@ def ask_openai_question(question):
 
     client = openai.Client(api_key=api_key)
 
+    # Add the pre-prompt as the initial message
+    conversation.insert(0, {"role": "system", "content": PRE_PROMPT})
+
     try:
-        # Step 1: Send the conversation and available functions to the model
-        messages = [{"role": "user", "content": question}]
         tools = get_tools()
         response = client.chat.completions.create(
-            model="gpt-4", messages=messages, tools=tools, tool_choice="auto"
+            model="gpt-4",
+            messages=conversation,
+            tools=tools,
+            tool_choice="auto"
         )
 
         response_message = response.choices[0].message
         tool_calls = response_message.tool_calls
 
-        # Step 2: Check if the model wanted to call a function
         if tool_calls:
-            messages.append(response_message)
+            conversation.append(response_message)
 
-            # Step 4: Send the info for each function call and function response to the model
             for tool_call in tool_calls:
                 function_name = tool_call.function.name
                 function_to_call = available_functions[function_name]
                 function_args = json.loads(tool_call.function.arguments)
                 function_response = function_to_call(**function_args)
 
-                messages.append(
+                conversation.append(
                     {
                         "tool_call_id": tool_call.id,
                         "role": "tool",
@@ -46,7 +51,8 @@ def ask_openai_question(question):
                 )
 
             second_response = client.chat.completions.create(
-                model="gpt-4", messages=messages
+                model="gpt-4",
+                messages=conversation
             )
 
             return second_response
