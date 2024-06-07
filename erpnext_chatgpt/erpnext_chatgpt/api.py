@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 from openai import OpenAI
+
 import json
 from erpnext_chatgpt.erpnext_chatgpt.tools import get_tools, available_functions
 
@@ -17,7 +18,11 @@ def ask_openai_question(conversation):
             "OpenAI API key is not set in OpenAI Settings.", title="OpenAI API Error"
         )
         return {"error": "OpenAI API key is not set in OpenAI Settings."}
+
     client = OpenAI(api_key=api_key)
+
+    frappe.log_error(message=json.dumps(conversation), title="OpenAI Question")
+
     # Add the pre-prompt as the initial message
     conversation.insert(0, {"role": "system", "content": PRE_PROMPT})
 
@@ -28,6 +33,8 @@ def ask_openai_question(conversation):
         )
 
         response_message = response.choices[0].message
+        frappe.log_error(message=json.dumps(response_message), title="OpenAI Response")
+
         tool_calls = response_message.get("tool_calls", [])
 
         if tool_calls:
@@ -38,23 +45,23 @@ def ask_openai_question(conversation):
                 function_to_call = available_functions[function_name]
                 function_args = json.loads(tool_call.function.arguments)
                 function_response = function_to_call(**function_args)
-
-                conversation.append(
-                    {
-                        "tool_call_id": tool_call.id,
-                        "role": "tool",
-                        "name": function_name,
-                        "content": function_response,
-                    }
-                )
+                if function_response:
+                    conversation.append(
+                        {
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "name": function_name,
+                            "content": function_response,
+                        }
+                    )
 
             second_response = client.chat.completions.create(
                 model=MODEL, messages=conversation
             )
 
-            return second_response
+            return second_response.choices[0].message
 
-        return {"error": "No function called"}
+        return response_message
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Error")
         return {"error": str(e)}

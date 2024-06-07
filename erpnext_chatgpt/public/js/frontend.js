@@ -20,6 +20,7 @@ function showChatButton() {
   chatButton.addEventListener("click", function () {
     const dialog = createChatDialog();
     document.body.appendChild(dialog);
+    $(dialog).modal("show"); // Use jQuery to show the modal
   });
 }
 
@@ -31,8 +32,6 @@ function createChatButton() {
   chatButton.style.zIndex = "10";
   chatButton.style.bottom = "20px";
   chatButton.style.right = "20px";
-  chatButton.style.width = "30px";
-  chatButton.style.height = "30px";
   chatButton.innerText = "O";
   return chatButton;
 }
@@ -40,70 +39,38 @@ function createChatButton() {
 function createChatDialog() {
   const dialog = document.createElement("div");
   dialog.id = "chatDialog";
-  dialog.className = "modal";
-  dialog.style.position = "fixed";
-  dialog.style.top = "50%";
-  dialog.style.left = "50%";
-  dialog.style.transform = "translate(-50%, -50%)";
-  dialog.style.width = "80%";
-  dialog.style.height = "80%";
-  dialog.style.backgroundColor = "#fff";
-  dialog.style.border = "1px solid #ccc";
-  dialog.style.borderRadius = "5px";
-  dialog.style.boxShadow = "0 0 10px rgba(0,0,0,0.5)";
-  dialog.style.zIndex = "1000";
-  dialog.style.padding = "20px";
-  dialog.style.overflowY = "auto";
-
-  const closeButton = createCloseButton(dialog);
-  dialog.appendChild(closeButton);
-
-  const dialogContent = createDialogContent();
-  dialog.appendChild(dialogContent);
-
-  dialog.addEventListener("click", (e) => {
-    if (e.target === dialog) {
-      document.body.removeChild(dialog);
-    }
-  });
-
-  return dialog;
-}
-
-function createCloseButton(dialog) {
-  const closeButton = document.createElement("button");
-  closeButton.innerText = "Close";
-  closeButton.className = "btn btn-danger btn-sm"; // ERPNext button styles
-  closeButton.style.position = "absolute";
-  closeButton.style.top = "10px";
-  closeButton.style.right = "10px";
-
-  closeButton.addEventListener("click", () => {
-    document.body.removeChild(dialog);
-  });
-
-  return closeButton;
-}
-
-function createDialogContent() {
-  const dialogContent = document.createElement("div");
-  dialogContent.innerHTML = `
-    <div>
-      <h3>Ask OpenAI</h3>
-      <div class="form-group">
-        <input type="text" id="question" class="form-control" placeholder="Ask a question..." style="margin-bottom: 10px;">
+  dialog.className = "modal fade"; // ERPNext modal styles
+  dialog.setAttribute("tabindex", "-1");
+  dialog.setAttribute("role", "dialog");
+  dialog.innerHTML = `
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Ask OpenAI</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <input type="text" id="question" class="form-control" placeholder="Ask a question...">
+          </div>
+          <pre id="answer" style="white-space: pre-wrap; word-wrap: break-word; padding: 10px; background: #f4f4f4; margin-top: 10px;"></pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="askButton">Ask</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
       </div>
-      <button id="askButton" class="btn btn-primary">Ask</button>
-      <pre id="answer" style="white-space: pre-wrap; word-wrap: break-word; padding: 10px; background: #f4f4f4; margin-top: 10px;"></pre>
     </div>
   `;
 
-  dialogContent.querySelector("#askButton").addEventListener("click", () => {
+  dialog.querySelector("#askButton").addEventListener("click", () => {
     const question = document.getElementById("question").value;
     askQuestion(question);
   });
 
-  return dialogContent;
+  return dialog;
 }
 
 async function askQuestion(question) {
