@@ -2,6 +2,7 @@
   "doctype": "DocType",
   "name": "OpenAI Settings",
   "module": "ERPNext ChatGPT",
+  "custom":1,
   "issingle": 1,
   "icon": "fa fa-cog",
   "fields": [
