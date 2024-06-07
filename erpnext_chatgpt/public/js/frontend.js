@@ -120,6 +120,13 @@ function loadSession(index) {
   );
   displayConversation(sessions[index].conversation);
 }
+function parseResponseMessage(response) {
+  const messageObj = {};
+  response.forEach(pair => {
+    messageObj[pair[0]] = pair[1];
+  });
+  return messageObj;
+}
 
 async function askQuestion(question) {
   let conversation = JSON.parse(sessionStorage.getItem("conversation")) || [];
@@ -144,11 +151,12 @@ async function askQuestion(question) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    if (data.error) {
+    // const data = await response.json();
+    const message = parseResponseMessage(data.message);
+    if (message.error) {
       document.getElementById("answer").innerText = `Error: ${data.error}`;
     } else {
-      conversation.push({ role: "assistant", content: data.message.content });
+      conversation.push({ role: "assistant", content: message.content });
       sessionStorage.setItem("conversation", JSON.stringify(conversation));
       displayConversation(conversation);
       saveCurrentSession(conversation);
