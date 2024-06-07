@@ -54,6 +54,11 @@ def ask_openai_question(conversation):
                             "content": function_response,
                         }
                     )
+                else:
+                    frappe.log_error(
+                        message=f"Error calling function: {function_name} with args: {json.dumps(function_args)}",
+                        title="OpenAI Tool Error",
+                    )
 
             second_response = client.chat.completions.create(
                 model=MODEL, messages=conversation
