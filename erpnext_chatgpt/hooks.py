@@ -12,7 +12,7 @@ required_apps = ["frappe/erpnext"]
 app_include_js = "/assets/erpnext_chatgpt/js/frontend.js"
 
 # Doctype JavaScript
-doctype_js = {"OpenAI Settings": "doctype/openai_settings/openai_settings.js"}
+doctype_js = {"OpenAI Settings": "erpnext_chatgpt/doctype/openai_settings/openai_settings.js"}
 
 fixtures = [
     {

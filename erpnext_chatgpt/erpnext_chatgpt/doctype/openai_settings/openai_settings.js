@@ -3,7 +3,7 @@ frappe.ui.form.on("OpenAI Settings", {
     // Add custom button if needed
     frm.add_custom_button(__("Test API Key"), function () {
       frappe.call({
-        method: "erpnext_chatgpt.api.test_openai_api_key",
+        method: "erpnext_chatgpt.erpnext_chatgpt.api.test_openai_api_key",
         args: {
           api_key: frm.doc.api_key,
         },

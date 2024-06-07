@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 import openai
 import json
-from erpnext_chatgpt.tools import get_tools, available_functions
+from erpnext_chatgpt.erpnext_chatgpt.tools import get_tools, available_functions
 
 # Define a pre-prompt to set the context or provide specific instructions
 PRE_PROMPT = "You are an AI assistant integrated with ERPNext. Please provide accurate and helpful responses based on the following questions and data provided by the user."

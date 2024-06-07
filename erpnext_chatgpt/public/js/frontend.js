@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function checkUserPermissionsAndShowButton() {
   frappe.call({
-    method: "erpnext_chatgpt.api.check_openai_key_and_role",
+    method: "erpnext_chatgpt.erpnext_chatgpt.api.check_openai_key_and_role",
     callback: function (response) {
       if (response.message.show_button) {
         showChatButton();
@@ -103,7 +103,7 @@ async function askQuestion(question) {
 
   try {
     const response = await fetch(
-      "/api/method/erpnext_chatgpt.api.ask_openai_question",
+      "/api/method/erpnext_chatgpt.erpnext_chatgpt.api.ask_openai_question",
       {
         method: "POST",
         headers: {
