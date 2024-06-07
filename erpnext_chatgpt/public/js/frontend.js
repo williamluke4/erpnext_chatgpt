@@ -106,7 +106,7 @@ async function askQuestion(question) {
     if (data.error) {
       document.getElementById("answer").innerText = `Error: ${data.error}`;
     } else {
-      conversation.push({ role: "assistant", content: data.message.result });
+      conversation.push({ role: "assistant", content: data.message });
       sessionStorage.setItem("conversation", JSON.stringify(conversation));
       displayConversation(conversation);
     }
