@@ -33,12 +33,10 @@ def ask_openai_question(conversation):
 
         response_message = response.choices[0].message
         if hasattr(response_message, "error"):
-            frappe.log_error(
-                message=json.dumps(response), title="OpenAI Response"
-            )
+            frappe.log_error(message=str(response_message), title="OpenAI Response")
             return {"error": response_message.error}
 
-        frappe.log_error(message=json.dumps(response_message), title="OpenAI Response")
+        frappe.log_error(message=str(response_message), title="OpenAI Response")
         tool_calls = []
         if hasattr(response_message, "tool_calls"):
             tool_calls = response_message.tool_calls
@@ -52,18 +50,18 @@ def ask_openai_question(conversation):
                 function_to_call = available_functions[function_name]
                 function_args = json.loads(tool_call.function.arguments)
                 function_response = function_to_call(**function_args)
-                if function_response:
+                if function_response is not None:
                     conversation.append(
                         {
                             "tool_call_id": tool_call.id,
                             "role": "tool",
                             "name": function_name,
-                            "content": function_response,
+                            "content": str(function_response),
                         }
                     )
                 else:
                     frappe.log_error(
-                        message=f"Error calling function: {function_name} with args: {json.dumps(function_args)}",
+                        message=f"Error calling function: {function_name} with args: {str(function_args)}",
                         title="OpenAI Tool Error",
                     )
 

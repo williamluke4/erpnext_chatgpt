@@ -11,4 +11,4 @@ export.sh
 /node_modules
 /__pycache__./exported.txt
 ./exported.txt
-
+erpnext_chatgpt/test.py
