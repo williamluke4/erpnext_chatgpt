@@ -77,15 +77,18 @@ def test_openai_api_key(api_key):
 def check_openai_key_and_role():
     user = frappe.session.user
     if "System Manager" not in frappe.get_roles(user):
-        return {"show_button": False}
-    
+        return {"show_button": False, "reason": "Only System Managers can access."}
+
     api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
     if not api_key:
-        return {"show_button": False}
-    
+        return {
+            "show_button": False,
+            "reason": "OpenAI API key is not set in OpenAI Settings.",
+        }
+
     try:
         openai.api_key = api_key
         openai.Engine.list()  # Test API call
         return {"show_button": True}
     except Exception as e:
-        return {"show_button": False}
+        return {"show_button": False, "reason": str(e)}

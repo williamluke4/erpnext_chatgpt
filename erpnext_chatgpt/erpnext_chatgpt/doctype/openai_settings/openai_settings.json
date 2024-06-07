@@ -2,7 +2,8 @@
   "doctype": "DocType",
   "name": "OpenAI Settings",
   "module": "OpenAI Integration",
-  "custom": 1,
+  "issingle": 1,
+  "icon": "fa fa-cog",
   "fields": [
     {
       "fieldname": "api_key",
