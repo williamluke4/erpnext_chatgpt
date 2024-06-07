@@ -6,31 +6,31 @@ from erpnext_chatgpt.tools import get_tools, available_functions
 
 # Define a pre-prompt to set the context or provide specific instructions
 PRE_PROMPT = "You are an AI assistant integrated with ERPNext. Please provide accurate and helpful responses based on the following questions and data provided by the user."
+MODEL = "gpt-4o"
+
 
 @frappe.whitelist()
 def ask_openai_question(conversation):
     api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
     if not api_key:
+        frappe.log_error(
+            "OpenAI API key is not set in OpenAI Settings.", title="OpenAI API Error"
+        )
         return {"error": "OpenAI API key is not set in OpenAI Settings."}
 
     openai.api_key = api_key
-
-    client = openai.Client(api_key=api_key)
 
     # Add the pre-prompt as the initial message
     conversation.insert(0, {"role": "system", "content": PRE_PROMPT})
 
     try:
         tools = get_tools()
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=conversation,
-            tools=tools,
-            tool_choice="auto"
+        response = openai.ChatCompletion.create(
+            model=MODEL, messages=conversation, tools=tools, tool_choice="auto"
         )
 
         response_message = response.choices[0].message
-        tool_calls = response_message.tool_calls
+        tool_calls = response_message.get("tool_calls", [])
 
         if tool_calls:
             conversation.append(response_message)
@@ -50,9 +50,8 @@ def ask_openai_question(conversation):
                     }
                 )
 
-            second_response = client.chat.completions.create(
-                model="gpt-4",
-                messages=conversation
+            second_response = openai.ChatCompletion.create(
+                model=MODEL, messages=conversation
             )
 
             return second_response
@@ -61,6 +60,7 @@ def ask_openai_question(conversation):
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Error")
         return {"error": str(e)}
+
 
 @frappe.whitelist()
 def test_openai_api_key(api_key):
@@ -71,3 +71,21 @@ def test_openai_api_key(api_key):
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Key Test Failed")
         return False
+
+
+@frappe.whitelist()
+def check_openai_key_and_role():
+    user = frappe.session.user
+    if "System Manager" not in frappe.get_roles(user):
+        return {"show_button": False}
+    
+    api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
+    if not api_key:
+        return {"show_button": False}
+    
+    try:
+        openai.api_key = api_key
+        openai.Engine.list()  # Test API call
+        return {"show_button": True}
+    except Exception as e:
+        return {"show_button": False}
