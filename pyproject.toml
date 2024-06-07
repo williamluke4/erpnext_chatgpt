@@ -5,7 +5,7 @@ authors = [
 ]
 description = "ERPNext app for OpenAI integration"
 requires-python = ">=3.10"
-readme = "README.md"
+readme = "Readme.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
