@@ -1,7 +1,7 @@
 {
   "doctype": "DocType",
   "name": "OpenAI Settings",
-  "module": "OpenAI Integration",
+  "module": "ERPNext ChatGPT",
   "issingle": 1,
   "icon": "fa fa-cog",
   "fields": [
