@@ -12,7 +12,7 @@ def get_openai_client():
     """Get the OpenAI client with the API key from settings."""
     api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
     if not api_key:
-        frappe.log_error("OpenAI API key is not set in OpenAI Settings.", title="OpenAI API Error")
+        frappe.log_error(message="OpenAI API key is not set in OpenAI Settings.", title="OpenAI API Error")
         raise ValueError("OpenAI API key is not set in OpenAI Settings.")
     return OpenAI(api_key=api_key)
 
@@ -22,14 +22,14 @@ def handle_tool_calls(tool_calls, conversation):
         function_name = tool_call.function.name
         function_to_call = available_functions.get(function_name)
         if not function_to_call:
-            frappe.log_error(f"Function {function_name} not found.", title="OpenAI Tool Error")
+            frappe.log_error(message=f"Function {function_name} not found.", title="OpenAI Tool Error")
             return {"error": f"Function {function_name} not found."}
 
         function_args = json.loads(tool_call.function.arguments)
         try:
             function_response = function_to_call(**function_args)
         except Exception as e:
-            frappe.log_error(f"Error calling function {function_name} with args {json.dumps(function_args)}: {str(e)}", title="OpenAI Tool Error")
+            frappe.log_error(message=f"Error calling function {function_name} with args {json.dumps(function_args)}: {str(e)}", title="OpenAI Tool Error")
             return {"error": f"Error calling function {function_name}: {str(e)}"}
 
         conversation.append({
