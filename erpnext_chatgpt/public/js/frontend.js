@@ -9,7 +9,7 @@ function checkUserPermissionsAndShowButton() {
       if (response.message.show_button) {
         showChatButton();
       }
-    }
+    },
   });
 }
 
