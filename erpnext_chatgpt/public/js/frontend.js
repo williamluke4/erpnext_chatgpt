@@ -122,7 +122,7 @@ function loadSession(index) {
 }
 function parseResponseMessage(response) {
   const messageObj = {};
-  response.forEach(pair => {
+  response.forEach((pair) => {
     messageObj[pair[0]] = pair[1];
   });
   return messageObj;
@@ -151,10 +151,10 @@ async function askQuestion(question) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    // const data = await response.json();
+    const data = await response.json();
     const message = parseResponseMessage(data.message);
     if (message.error) {
-      document.getElementById("answer").innerText = `Error: ${data.error}`;
+      document.getElementById("answer").innerText = `Error: ${message.error}`;
     } else {
       conversation.push({ role: "assistant", content: message.content });
       sessionStorage.setItem("conversation", JSON.stringify(conversation));
