@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
   checkUserPermissionsAndShowButton();
-  loadSessions();
 });
 
 function checkUserPermissionsAndShowButton() {
@@ -22,6 +21,7 @@ function showChatButton() {
     const dialog = createChatDialog();
     document.body.appendChild(dialog);
     $(dialog).modal("show");
+    loadSessions(); // Ensure sessions are loaded after the dialog is created
   });
 }
 
@@ -81,18 +81,19 @@ function createChatDialog() {
 function loadSessions() {
   const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
   const sessionsList = document.getElementById("sessions-list");
-  sessionsList.innerHTML = "";
+  if (sessionsList) {
+    sessionsList.innerHTML = "";
 
-  sessions.forEach((session, index) => {
-    const sessionItem = document.createElement("li");
-    sessionItem.className =
-      "list-group-item d-flex justify-content-between align-items-center";
-    sessionItem.innerHTML = `
-      <span onclick="loadSession(${index})">${session.name}</span>
-      <button class="btn btn-danger btn-sm" onclick="deleteSession(${index})">Delete</button>
-    `;
-    sessionsList.appendChild(sessionItem);
-  });
+    sessions.forEach((session, index) => {
+      const sessionItem = document.createElement("li");
+      sessionItem.className = "list-group-item d-flex justify-content-between align-items-center";
+      sessionItem.innerHTML = `
+        <span onclick="loadSession(${index})">${session.name}</span>
+        <button class="btn btn-danger btn-sm" onclick="deleteSession(${index})">Delete</button>
+      `;
+      sessionsList.appendChild(sessionItem);
+    });
+  }
 }
 
 function createSession() {
@@ -114,10 +115,7 @@ function deleteSession(index) {
 
 function loadSession(index) {
   const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
-  sessionStorage.setItem(
-    "conversation",
-    JSON.stringify(sessions[index].conversation)
-  );
+  sessionStorage.setItem("conversation", JSON.stringify(sessions[index].conversation));
   displayConversation(sessions[index].conversation);
 }
 
@@ -162,9 +160,7 @@ function saveCurrentSession(conversation) {
   const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
   const sessionName = prompt("Enter session name to save:", "New Session");
   if (sessionName) {
-    const sessionIndex = sessions.findIndex(
-      (session) => session.name === sessionName
-    );
+    const sessionIndex = sessions.findIndex((session) => session.name === sessionName);
     if (sessionIndex !== -1) {
       sessions[sessionIndex].conversation = conversation;
     } else {
@@ -180,8 +176,7 @@ function displayConversation(conversation) {
   conversationContainer.innerHTML = "";
   conversation.forEach((message) => {
     const messageElement = document.createElement("div");
-    messageElement.className =
-      message.role === "user" ? "alert alert-info" : "alert alert-secondary";
+    messageElement.className = message.role === "user" ? "alert alert-info" : "alert alert-secondary";
     messageElement.innerHTML = renderMessageContent(message);
     conversationContainer.appendChild(messageElement);
   });
@@ -189,11 +184,9 @@ function displayConversation(conversation) {
 
 function renderMessageContent(message) {
   if (message.role === "assistant") {
-    return marked.parse(message.content, { renderer: getBootstrapRenderer() });
+    return marked.parse(message.content || '', { renderer: getBootstrapRenderer() });
   }
-  return `<strong>${message.role}:</strong> ${marked.parse(message.content, {
-    renderer: getBootstrapRenderer(),
-  })}`;
+  return `<strong>${message.role}:</strong> ${marked.parse(message.content || '', { renderer: getBootstrapRenderer() })}`;
 }
 
 function getBootstrapRenderer() {
@@ -201,9 +194,7 @@ function getBootstrapRenderer() {
 
   renderer.heading = (text, level) => {
     const sizes = ["h1", "h2", "h3", "h4", "h5", "h6"];
-    return `<${sizes[level - 1]} class="mt-3 mb-3">${text}</${
-      sizes[level - 1]
-    }>`;
+    return `<${sizes[level - 1]} class="mt-3 mb-3">${text}</${sizes[level - 1]}>`;
   };
 
   renderer.paragraph = (text) => {
@@ -232,6 +223,12 @@ function getBootstrapRenderer() {
 }
 
 // Load marked.js for markdown parsing
-const script = document.createElement("script");
-script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+script.onload = () => {
+  console.log("marked.js loaded successfully.");
+};
+script.onerror = () => {
+  console.error("Error loading marked.js.");
+};
 document.head.appendChild(script);
