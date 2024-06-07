@@ -21,10 +21,9 @@ def ask_openai_question(conversation):
 
     client = OpenAI(api_key=api_key)
 
-    frappe.log_error(message=json.dumps(conversation), title="OpenAI Question")
-
     # Add the pre-prompt as the initial message
     conversation.insert(0, {"role": "system", "content": PRE_PROMPT})
+    frappe.log_error(message=json.dumps(conversation), title="OpenAI Question")
 
     try:
         tools = get_tools()
@@ -33,12 +32,19 @@ def ask_openai_question(conversation):
         )
 
         response_message = response.choices[0].message
+        if response_message.get("error"):
+            frappe.log_error(
+                message=json.dumps(response_message), title="OpenAI Response"
+            )
+            return {"error": response_message.get("error")}
+
         frappe.log_error(message=json.dumps(response_message), title="OpenAI Response")
 
         tool_calls = response_message.get("tool_calls", [])
 
         if tool_calls:
-            conversation.append(response_message)
+            if response_message.get("content"):
+                conversation.append(response_message)
 
             for tool_call in tool_calls:
                 function_name = tool_call.function.name
