@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-import openai
+from openai import OpenAI
 import json
 from erpnext_chatgpt.erpnext_chatgpt.tools import get_tools, available_functions
 
@@ -17,15 +17,13 @@ def ask_openai_question(conversation):
             "OpenAI API key is not set in OpenAI Settings.", title="OpenAI API Error"
         )
         return {"error": "OpenAI API key is not set in OpenAI Settings."}
-
-    openai.api_key = api_key
-
+    client = OpenAI(api_key=api_key)
     # Add the pre-prompt as the initial message
     conversation.insert(0, {"role": "system", "content": PRE_PROMPT})
 
     try:
         tools = get_tools()
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=MODEL, messages=conversation, tools=tools, tool_choice="auto"
         )
 
@@ -50,7 +48,7 @@ def ask_openai_question(conversation):
                     }
                 )
 
-            second_response = openai.ChatCompletion.create(
+            second_response = client.chat.completions.create(
                 model=MODEL, messages=conversation
             )
 
@@ -64,9 +62,9 @@ def ask_openai_question(conversation):
 
 @frappe.whitelist()
 def test_openai_api_key(api_key):
+    client = OpenAI(api_key=api_key)
     try:
-        openai.api_key = api_key
-        openai.Engine.list()  # Test API call
+        client.models.list()  # Test API call
         return True
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Key Test Failed")
@@ -87,8 +85,8 @@ def check_openai_key_and_role():
         }
 
     try:
-        openai.api_key = api_key
-        openai.Engine.list()  # Test API call
+        client = OpenAI(api_key=api_key)
+        client.models.list()  # Test API call
         return {"show_button": True}
     except Exception as e:
         return {"show_button": False, "reason": str(e)}
