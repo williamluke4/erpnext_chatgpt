@@ -17,23 +17,24 @@ function showChatButton() {
   const chatButton = createChatButton();
   document.body.appendChild(chatButton);
 
-  chatButton.addEventListener("click", function () {
+  chatButton.addEventListener("click", () => {
     const dialog = createChatDialog();
     document.body.appendChild(dialog);
     $(dialog).modal("show");
-    loadSessions(); // Ensure sessions are loaded after the dialog is created
+    loadSessions();
   });
 }
 
 function createChatButton() {
   const chatButton = document.createElement("button");
   chatButton.id = "chatButton";
-  chatButton.className = "btn btn-primary btn-sm";
+  chatButton.className = "btn btn-primary btn-circle";
   chatButton.style.position = "fixed";
   chatButton.style.zIndex = "10";
   chatButton.style.bottom = "20px";
   chatButton.style.right = "20px";
-  chatButton.innerText = "O";
+  chatButton.innerText = "+";
+  chatButton.title = "Open AI Chat";
   return chatButton;
 }
 
@@ -57,10 +58,10 @@ function createChatDialog() {
             <button class="btn btn-success" onclick="createSession()">New Session</button>
             <ul id="sessions-list" class="list-group mt-2"></ul>
           </div>
-          <div id="answer" class="p-3" style="background: #f4f4f4; margin-top: 10px;"></div>
+          <div id="answer" class="p-3" style="background: #f4f4f4; margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
         </div>
         <div class="modal-footer">
-          <input type="text" id="question" class="form-control" placeholder="Ask a question...">
+          <input type="text" id="question" class="form-control mr-2" placeholder="Ask a question...">
           <button type="button" class="btn btn-primary" id="askButton">Ask</button>
         </div>
       </div>
@@ -87,7 +88,7 @@ function loadSessions() {
         "list-group-item d-flex justify-content-between align-items-center";
       sessionItem.onclick = () => loadSession(index);
       sessionItem.innerHTML = `
-        <span>${session.name}</span>
+        <span style="cursor: pointer;">${session.name}</span>
         <button class="btn btn-danger btn-sm" onclick="deleteSession(${index})">Delete</button>
       `;
       sessionsList.appendChild(sessionItem);
@@ -120,6 +121,7 @@ function loadSession(index) {
   );
   displayConversation(sessions[index].conversation);
 }
+
 function parseResponseMessage(response) {
   const messageObj = {};
   response.forEach((pair) => {
@@ -196,15 +198,9 @@ function displayConversation(conversation) {
 }
 
 function renderMessageContent(message) {
-  if (message.role === "assistant") {
-    return marked.parse(message.content || "", {
-      renderer: getBootstrapRenderer(),
-    });
-  }
-  return `<strong>${message.role}:</strong> ${marked.parse(
-    message.content || "",
-    { renderer: getBootstrapRenderer() }
-  )}`;
+  return marked.parse(message.content || "", {
+    renderer: getBootstrapRenderer(),
+  });
 }
 
 function getBootstrapRenderer() {
@@ -217,27 +213,21 @@ function getBootstrapRenderer() {
     }>`;
   };
 
-  renderer.paragraph = (text) => {
-    return `<p class="mb-2">${text}</p>`;
-  };
+  renderer.paragraph = (text) => `<p class="mb-2">${text}</p>`;
 
   renderer.list = (body, ordered) => {
     const type = ordered ? "ol" : "ul";
     return `<${type} class="list-group mb-2">${body}</${type}>`;
   };
 
-  renderer.listitem = (text) => {
-    return `<li class="list-group-item">${text}</li>`;
-  };
+  renderer.listitem = (text) => `<li class="list-group-item">${text}</li>`;
 
-  renderer.table = (header, body) => {
-    return `
-      <table class="table table-striped">
-        <thead>${header}</thead>
-        <tbody>${body}</tbody>
-      </table>
-    `;
-  };
+  renderer.table = (header, body) => `
+    <table class="table table-striped">
+      <thead>${header}</thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
 
   return renderer;
 }
