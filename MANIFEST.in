@@ -1,4 +1,0 @@
-include erpnext_chatgpt/doctype/openai_settings/openai_settings.json
-include erpnext_chatgpt/public/js/frontend.js
-include erpnext_chatgpt/public/js/openai_settings.js
-include erpnext_chatgpt/templates/pages/openai_interface.html
