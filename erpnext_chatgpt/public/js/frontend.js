@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
   checkUserPermissionsAndShowButton();
 });
 
@@ -60,7 +60,7 @@ function createChatDialog() {
             <button class="btn btn-success" onclick="createSession()">New Session</button>
             <ul id="sessions-list" class="list-group mt-2"></ul>
           </div>
-          <div id="answer" style="white-space: pre-wrap; word-wrap: break-word; padding: 10px; background: #f4f4f4; margin-top: 10px;"></div>
+          <div id="answer" class="p-3" style="background: #f4f4f4; margin-top: 10px;"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" id="askButton">Ask</button>
