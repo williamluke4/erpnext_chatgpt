@@ -60,7 +60,7 @@ function createChatDialog() {
           </div>
           <div id="answer" class="p-3" style="background: #f4f4f4; margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer d-flex align-items-center">
           <input type="text" id="question" class="form-control mr-2" placeholder="Ask a question...">
           <button type="button" class="btn btn-primary" id="askButton">Ask</button>
         </div>
@@ -69,8 +69,9 @@ function createChatDialog() {
   `;
 
   dialog.querySelector("#askButton").addEventListener("click", () => {
-    const question = document.getElementById("question").value;
-    askQuestion(question);
+    const question = document.getElementById("question");
+    question.value = "";
+    askQuestion(question.value);
   });
 
   return dialog;
@@ -124,9 +125,18 @@ function loadSession(index) {
 
 function parseResponseMessage(response) {
   const messageObj = {};
-  response.forEach((pair) => {
-    messageObj[pair[0]] = pair[1];
-  });
+  if(!response) {
+    return { content: "No response from OpenAI." };
+  }
+  if (Array.isArray(response)) {
+    response.forEach((pair) => {
+      messageObj[pair[0]] = pair[1];
+    });
+  }
+  if(response.error) {
+    messageObj.error = response.error;
+  }
+  
   return messageObj;
 }
 
