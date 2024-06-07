@@ -33,7 +33,7 @@ def ask_openai_question(conversation):
 
         response_message = response.choices[0].message
         if hasattr(response_message, "error"):
-            frappe.log_error(message=str(response_message), title="OpenAI Response")
+            frappe.log_error(message=str(response_message), title="OpenAI Error")
             return {"error": response_message.error}
 
         frappe.log_error(message=str(response_message), title="OpenAI Response")
@@ -61,9 +61,10 @@ def ask_openai_question(conversation):
                     )
                 else:
                     frappe.log_error(
-                        message=f"Error calling function: {function_name} with args: {str(function_args)}",
+                        message=f"Error calling function: {function_name} with args: {json.dumps(function_args)}",
                         title="OpenAI Tool Error",
                     )
+                    return {"error": f"Error calling function: {function_name}"}
 
             second_response = client.chat.completions.create(
                 model=MODEL, messages=conversation
