@@ -69,9 +69,15 @@ function createChatDialog() {
   `;
 
   dialog.querySelector("#askButton").addEventListener("click", () => {
-    const question = document.getElementById("question");
-    question.value = "";
-    askQuestion(question.value);
+    const input = document.getElementById("question");
+    const question = input.value.trim();
+    if (!question) {
+      return;
+    }
+    input.value = "Loading...";
+    askQuestion(question).finally(() => {
+      input.value = "";
+    });
   });
 
   return dialog;
@@ -125,7 +131,7 @@ function loadSession(index) {
 
 function parseResponseMessage(response) {
   const messageObj = {};
-  if(!response) {
+  if (!response) {
     return { content: "No response from OpenAI." };
   }
   if (Array.isArray(response)) {
@@ -133,10 +139,10 @@ function parseResponseMessage(response) {
       messageObj[pair[0]] = pair[1];
     });
   }
-  if(response.error) {
+  if (response.error) {
     messageObj.error = response.error;
   }
-  
+
   return messageObj;
 }
 
