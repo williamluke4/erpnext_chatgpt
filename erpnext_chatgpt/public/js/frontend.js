@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
   checkUserPermissionsAndShowButton();
+  loadSessions();
 });
 
 function checkUserPermissionsAndShowButton() {
@@ -20,14 +21,14 @@ function showChatButton() {
   chatButton.addEventListener("click", function () {
     const dialog = createChatDialog();
     document.body.appendChild(dialog);
-    $(dialog).modal("show"); // Use jQuery to show the modal
+    $(dialog).modal("show");
   });
 }
 
 function createChatButton() {
   const chatButton = document.createElement("button");
   chatButton.id = "chatButton";
-  chatButton.className = "btn btn-primary btn-sm"; // ERPNext button styles
+  chatButton.className = "btn btn-primary btn-sm";
   chatButton.style.position = "fixed";
   chatButton.style.zIndex = "10";
   chatButton.style.bottom = "20px";
@@ -39,7 +40,7 @@ function createChatButton() {
 function createChatDialog() {
   const dialog = document.createElement("div");
   dialog.id = "chatDialog";
-  dialog.className = "modal fade"; // ERPNext modal styles
+  dialog.className = "modal fade";
   dialog.setAttribute("tabindex", "-1");
   dialog.setAttribute("role", "dialog");
   dialog.innerHTML = `
@@ -55,7 +56,11 @@ function createChatDialog() {
           <div class="form-group">
             <input type="text" id="question" class="form-control" placeholder="Ask a question...">
           </div>
-          <pre id="answer" style="white-space: pre-wrap; word-wrap: break-word; padding: 10px; background: #f4f4f4; margin-top: 10px;"></pre>
+          <div id="sessions-container" class="mb-3">
+            <button class="btn btn-success" onclick="createSession()">New Session</button>
+            <ul id="sessions-list" class="list-group mt-2"></ul>
+          </div>
+          <div id="answer" style="white-space: pre-wrap; word-wrap: break-word; padding: 10px; background: #f4f4f4; margin-top: 10px;"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" id="askButton">Ask</button>
@@ -73,18 +78,55 @@ function createChatDialog() {
   return dialog;
 }
 
-async function askQuestion(question) {
-  let conversation = sessionStorage.getItem("conversation");
-  if (!conversation) {
-    conversation = [];
-  } else {
-    conversation = JSON.parse(conversation);
-  }
+function loadSessions() {
+  const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
+  const sessionsList = document.getElementById("sessions-list");
+  sessionsList.innerHTML = "";
 
+  sessions.forEach((session, index) => {
+    const sessionItem = document.createElement("li");
+    sessionItem.className =
+      "list-group-item d-flex justify-content-between align-items-center";
+    sessionItem.innerHTML = `
+      <span onclick="loadSession(${index})">${session.name}</span>
+      <button class="btn btn-danger btn-sm" onclick="deleteSession(${index})">Delete</button>
+    `;
+    sessionsList.appendChild(sessionItem);
+  });
+}
+
+function createSession() {
+  const sessionName = prompt("Enter session name:");
+  if (sessionName) {
+    const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
+    sessions.push({ name: sessionName, conversation: [] });
+    localStorage.setItem("sessions", JSON.stringify(sessions));
+    loadSessions();
+  }
+}
+
+function deleteSession(index) {
+  const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
+  sessions.splice(index, 1);
+  localStorage.setItem("sessions", JSON.stringify(sessions));
+  loadSessions();
+}
+
+function loadSession(index) {
+  const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
+  sessionStorage.setItem(
+    "conversation",
+    JSON.stringify(sessions[index].conversation)
+  );
+  displayConversation(sessions[index].conversation);
+}
+
+async function askQuestion(question) {
+  let conversation = JSON.parse(sessionStorage.getItem("conversation")) || [];
   conversation.push({ role: "user", content: question });
 
   try {
-    const csrfToken = frappe.csrf_token; // Get CSRF token
+    const csrfToken = frappe.csrf_token;
 
     const response = await fetch(
       "/api/method/erpnext_chatgpt.erpnext_chatgpt.api.ask_openai_question",
@@ -92,7 +134,7 @@ async function askQuestion(question) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Frappe-CSRF-Token": csrfToken, // Include CSRF token
+          "X-Frappe-CSRF-Token": csrfToken,
         },
         body: JSON.stringify({ conversation }),
       }
@@ -106,12 +148,30 @@ async function askQuestion(question) {
     if (data.error) {
       document.getElementById("answer").innerText = `Error: ${data.error}`;
     } else {
-      conversation.push({ role: "assistant", content: data.message });
+      conversation.push({ role: "assistant", content: data.message.content });
       sessionStorage.setItem("conversation", JSON.stringify(conversation));
       displayConversation(conversation);
+      saveCurrentSession(conversation);
     }
   } catch (error) {
     document.getElementById("answer").innerText = `Error: ${error.message}`;
+  }
+}
+
+function saveCurrentSession(conversation) {
+  const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
+  const sessionName = prompt("Enter session name to save:", "New Session");
+  if (sessionName) {
+    const sessionIndex = sessions.findIndex(
+      (session) => session.name === sessionName
+    );
+    if (sessionIndex !== -1) {
+      sessions[sessionIndex].conversation = conversation;
+    } else {
+      sessions.push({ name: sessionName, conversation });
+    }
+    localStorage.setItem("sessions", JSON.stringify(sessions));
+    loadSessions();
   }
 }
 
@@ -120,7 +180,58 @@ function displayConversation(conversation) {
   conversationContainer.innerHTML = "";
   conversation.forEach((message) => {
     const messageElement = document.createElement("div");
-    messageElement.innerText = `${message.role}: ${message.content}`;
+    messageElement.className =
+      message.role === "user" ? "alert alert-info" : "alert alert-secondary";
+    messageElement.innerHTML = renderMessageContent(message);
     conversationContainer.appendChild(messageElement);
   });
 }
+
+function renderMessageContent(message) {
+  if (message.role === "assistant") {
+    return marked.parse(message.content, { renderer: getBootstrapRenderer() });
+  }
+  return `<strong>${message.role}:</strong> ${marked.parse(message.content, {
+    renderer: getBootstrapRenderer(),
+  })}`;
+}
+
+function getBootstrapRenderer() {
+  const renderer = new marked.Renderer();
+
+  renderer.heading = (text, level) => {
+    const sizes = ["h1", "h2", "h3", "h4", "h5", "h6"];
+    return `<${sizes[level - 1]} class="mt-3 mb-3">${text}</${
+      sizes[level - 1]
+    }>`;
+  };
+
+  renderer.paragraph = (text) => {
+    return `<p class="mb-2">${text}</p>`;
+  };
+
+  renderer.list = (body, ordered) => {
+    const type = ordered ? "ol" : "ul";
+    return `<${type} class="list-group mb-2">${body}</${type}>`;
+  };
+
+  renderer.listitem = (text) => {
+    return `<li class="list-group-item">${text}</li>`;
+  };
+
+  renderer.table = (header, body) => {
+    return `
+      <table class="table table-striped">
+        <thead>${header}</thead>
+        <tbody>${body}</tbody>
+      </table>
+    `;
+  };
+
+  return renderer;
+}
+
+// Load marked.js for markdown parsing
+const script = document.createElement("script");
+script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+document.head.appendChild(script);
