@@ -26,22 +26,21 @@ function showChatButton() {
 function createChatButton() {
   const chatButton = document.createElement("button");
   chatButton.id = "chatButton";
+  chatButton.className = "btn btn-primary btn-sm"; // ERPNext button styles
   chatButton.style.position = "fixed";
   chatButton.style.zIndex = "10";
   chatButton.style.bottom = "20px";
   chatButton.style.right = "20px";
   chatButton.style.width = "30px";
   chatButton.style.height = "30px";
-  chatButton.style.backgroundColor = "rgb(206 206 206)";
-  chatButton.style.color = "#fff";
-  chatButton.style.border = "none";
-  chatButton.style.borderRadius = "5px";
+  chatButton.innerText = "O";
   return chatButton;
 }
 
 function createChatDialog() {
   const dialog = document.createElement("div");
   dialog.id = "chatDialog";
+  dialog.className = "modal";
   dialog.style.position = "fixed";
   dialog.style.top = "50%";
   dialog.style.left = "50%";
@@ -74,14 +73,10 @@ function createChatDialog() {
 function createCloseButton(dialog) {
   const closeButton = document.createElement("button");
   closeButton.innerText = "Close";
+  closeButton.className = "btn btn-danger btn-sm"; // ERPNext button styles
   closeButton.style.position = "absolute";
   closeButton.style.top = "10px";
   closeButton.style.right = "10px";
-  closeButton.style.padding = "5px 10px";
-  closeButton.style.backgroundColor = "#dc3545";
-  closeButton.style.color = "#fff";
-  closeButton.style.border = "none";
-  closeButton.style.borderRadius = "5px";
 
   closeButton.addEventListener("click", () => {
     document.body.removeChild(dialog);
@@ -95,8 +90,10 @@ function createDialogContent() {
   dialogContent.innerHTML = `
     <div>
       <h3>Ask OpenAI</h3>
-      <input type="text" id="question" placeholder="Ask a question..." style="width: 100%; padding: 10px; margin-bottom: 10px;">
-      <button id="askButton" style="padding: 10px 20px;">Ask</button>
+      <div class="form-group">
+        <input type="text" id="question" class="form-control" placeholder="Ask a question..." style="margin-bottom: 10px;">
+      </div>
+      <button id="askButton" class="btn btn-primary">Ask</button>
       <pre id="answer" style="white-space: pre-wrap; word-wrap: break-word; padding: 10px; background: #f4f4f4; margin-top: 10px;"></pre>
     </div>
   `;
