@@ -32,18 +32,19 @@ def ask_openai_question(conversation):
         )
 
         response_message = response.choices[0].message
-        if response_message.get("error"):
+        if hasattr(response_message, "error"):
             frappe.log_error(
-                message=json.dumps(response_message), title="OpenAI Response"
+                message=json.dumps(response), title="OpenAI Response"
             )
-            return {"error": response_message.get("error")}
+            return {"error": response_message.error}
 
         frappe.log_error(message=json.dumps(response_message), title="OpenAI Response")
-
-        tool_calls = response_message.get("tool_calls", [])
+        tool_calls = []
+        if hasattr(response_message, "tool_calls"):
+            tool_calls = response_message.tool_calls
 
         if tool_calls:
-            if response_message.get("content"):
+            if hasattr(response_message, "content"):
                 conversation.append(response_message)
 
             for tool_call in tool_calls:
