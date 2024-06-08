@@ -62,7 +62,7 @@ function createChatDialog() {
           </div>
           <div id="answer" class="p-3" style="background: #f4f4f4; margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
         </div>
-        <div class="modal-footer d-flex align-items-center">
+        <div class="modal-footer d-flex align-items-center" style="flex-wrap:nowrap;">
           <input type="text" id="question" class="form-control mr-2" placeholder="Ask a question...">
           <button type="button" class="btn btn-primary" id="askButton">Ask</button>
         </div>
