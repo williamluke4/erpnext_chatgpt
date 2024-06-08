@@ -254,8 +254,19 @@ get_general_ledger_entries_tool = {
 }
 
 
-def get_balance_sheet():
-    return json.dumps(frappe.get_all("Balance Sheet"), default=json_serial)
+def get_balance_sheet(start_date, end_date):
+    # Query to get balance sheet data within a date range
+    query = """
+        SELECT
+            account, 
+            sum(debit) - sum(credit) as balance
+        FROM `tabGL Entry`
+        WHERE posting_date BETWEEN %s AND %s
+        GROUP BY account
+    """
+    return json.dumps(
+        frappe.db.sql(query, (start_date, end_date), as_dict=True), default=json_serial
+    )
 
 
 get_balance_sheet_tool = {
@@ -263,7 +274,20 @@ get_balance_sheet_tool = {
     "function": {
         "name": "get_balance_sheet",
         "description": "Get the balance sheet report",
-        "parameters": {},
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "start_date": {
+                    "type": "string",
+                    "description": "Start date in YYYY-MM-DD format",
+                },
+                "end_date": {
+                    "type": "string",
+                    "description": "End date in YYYY-MM-DD format",
+                },
+            },
+            "required": ["start_date", "end_date"],
+        },
     },
 }
 
