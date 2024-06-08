@@ -292,8 +292,20 @@ get_balance_sheet_tool = {
 }
 
 
-def get_profit_and_loss_statement():
-    return json.dumps(frappe.get_all("Profit and Loss Statement"), default=json_serial)
+def get_profit_and_loss_statement(start_date=None, end_date=None):
+    if not start_date or not end_date:
+        return json.dumps(
+            {"error": "start_date and end_date are required"}, default=json_serial
+        )
+
+    report = frappe.get_doc("Report", "Profit and Loss Statement")
+    filters = {
+        "from_date": start_date,
+        "to_date": end_date,
+        "company": frappe.defaults.get_user_default("company"),
+    }
+    result = report.get_data(filters=filters)
+    return json.dumps(result, default=json_serial)
 
 
 get_profit_and_loss_statement_tool = {
@@ -301,7 +313,20 @@ get_profit_and_loss_statement_tool = {
     "function": {
         "name": "get_profit_and_loss_statement",
         "description": "Get the profit and loss statement report",
-        "parameters": {},
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "start_date": {
+                    "type": "string",
+                    "description": "Start date in YYYY-MM-DD format",
+                },
+                "end_date": {
+                    "type": "string",
+                    "description": "End date in YYYY-MM-DD format",
+                },
+            },
+            "required": ["start_date", "end_date"],
+        },
     },
 }
 
