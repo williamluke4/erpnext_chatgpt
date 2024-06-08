@@ -2,6 +2,8 @@ document.addEventListener("DOMContentLoaded", () => {
   checkUserPermissionsAndShowButton();
 });
 
+let currentSessionIndex = null; // Track the current session index
+
 function checkUserPermissionsAndShowButton() {
   frappe.call({
     method: "erpnext_chatgpt.erpnext_chatgpt.api.check_openai_key_and_role",
@@ -110,6 +112,7 @@ function createSession() {
     sessions.push({ name: sessionName, conversation: [] });
     localStorage.setItem("sessions", JSON.stringify(sessions));
     loadSessions();
+    currentSessionIndex = sessions.length - 1; // Set the new session as the current session
   }
 }
 
@@ -118,14 +121,15 @@ function deleteSession(index) {
   sessions.splice(index, 1);
   localStorage.setItem("sessions", JSON.stringify(sessions));
   loadSessions();
+  if (index === currentSessionIndex) {
+    currentSessionIndex = null;
+    document.getElementById("answer").innerHTML = "";
+  }
 }
 
 function loadSession(index) {
   const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
-  sessionStorage.setItem(
-    "conversation",
-    JSON.stringify(sessions[index].conversation)
-  );
+  currentSessionIndex = index;
   displayConversation(sessions[index].conversation);
 }
 
@@ -147,7 +151,12 @@ function parseResponseMessage(response) {
 }
 
 async function askQuestion(question) {
-  let conversation = JSON.parse(sessionStorage.getItem("conversation")) || [];
+  const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
+  if (currentSessionIndex === null) {
+    alert("Please select or create a session first.");
+    return;
+  }
+  let conversation = sessions[currentSessionIndex].conversation;
   conversation.push({ role: "user", content: question });
 
   try {
@@ -175,29 +184,12 @@ async function askQuestion(question) {
       document.getElementById("answer").innerText = `Error: ${message.error}`;
     } else {
       conversation.push({ role: "assistant", content: message.content });
-      sessionStorage.setItem("conversation", JSON.stringify(conversation));
+      sessions[currentSessionIndex].conversation = conversation;
+      localStorage.setItem("sessions", JSON.stringify(sessions));
       displayConversation(conversation);
-      saveCurrentSession(conversation);
     }
   } catch (error) {
     document.getElementById("answer").innerText = `Error: ${error.message}`;
-  }
-}
-
-function saveCurrentSession(conversation) {
-  const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
-  const sessionName = prompt("Enter session name to save:", "New Session");
-  if (sessionName) {
-    const sessionIndex = sessions.findIndex(
-      (session) => session.name === sessionName
-    );
-    if (sessionIndex !== -1) {
-      sessions[sessionIndex].conversation = conversation;
-    } else {
-      sessions.push({ name: sessionName, conversation });
-    }
-    localStorage.setItem("sessions", JSON.stringify(sessions));
-    loadSessions();
   }
 }
 
