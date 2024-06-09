@@ -1,6 +1,6 @@
 import frappe
 import json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 
 
@@ -10,10 +10,15 @@ def json_serial(obj):
         return obj.isoformat()
     if isinstance(obj, Decimal):
         return float(obj)
+    if isinstance(obj, timedelta):
+        return str(obj)
     frappe.log_error(
         title="Not serializable", message=f"Type {type(obj)} not serializable"
     )
-    return ""
+    try:
+        return str(obj)
+    except Exception:
+        return ""
 
 
 def get_sales_invoices(start_date=None, end_date=None):
@@ -215,15 +220,21 @@ get_stock_levels_tool = {
 def get_general_ledger_entries(start_date=None, end_date=None, account=None):
     query = "SELECT * FROM `tabGL Entry`"
     filters = []
+    parameters = []
+
     if start_date and end_date:
         filters.append("posting_date BETWEEN %s AND %s")
+        parameters.extend([start_date, end_date])
+
     if account:
         filters.append("account = %s")
+        parameters.append(account)
+
     if filters:
         query += " WHERE " + " AND ".join(filters)
+
     return json.dumps(
-        frappe.db.sql(query, (start_date, end_date, account), as_dict=True),
-        default=json_serial,
+        frappe.db.sql(query, tuple(parameters), as_dict=True), default=json_serial
     )
 
 
