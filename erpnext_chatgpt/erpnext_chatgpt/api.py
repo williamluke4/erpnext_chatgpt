@@ -5,16 +5,21 @@ import json
 from erpnext_chatgpt.erpnext_chatgpt.tools import get_tools, available_functions
 
 # Define a pre-prompt to set the context or provide specific instructions
-PRE_PROMPT = "You are an AI assistant integrated with ERPNext. Please provide accurate and helpful responses based on the following questions and data provided by the user."
+PRE_PROMPT = f"You are an AI assistant integrated with ERPNext. Please provide accurate and helpful responses based on the following questions and data provided by the user. The current date is {frappe.utils.now()}."
 MODEL = "gpt-4o"
+
 
 def get_openai_client():
     """Get the OpenAI client with the API key from settings."""
     api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
     if not api_key:
-        frappe.log_error(message="OpenAI API key is not set in OpenAI Settings.", title="OpenAI API Error")
+        frappe.log_error(
+            message="OpenAI API key is not set in OpenAI Settings.",
+            title="OpenAI API Error",
+        )
         raise ValueError("OpenAI API key is not set in OpenAI Settings.")
     return OpenAI(api_key=api_key)
+
 
 def handle_tool_calls(tool_calls, conversation):
     """Handle the tool calls by executing the corresponding functions and appending the results to the conversation."""
@@ -22,29 +27,38 @@ def handle_tool_calls(tool_calls, conversation):
         function_name = tool_call.function.name
         function_to_call = available_functions.get(function_name)
         if not function_to_call:
-            frappe.log_error(message=f"Function {function_name} not found.", title="OpenAI Tool Error")
+            frappe.log_error(
+                message=f"Function {function_name} not found.",
+                title="OpenAI Tool Error",
+            )
             return {"error": f"Function {function_name} not found."}
 
         function_args = json.loads(tool_call.function.arguments)
         try:
             function_response = function_to_call(**function_args)
         except Exception as e:
-            frappe.log_error(message=f"Error calling function {function_name} with args {json.dumps(function_args)}: {str(e)}", title="OpenAI Tool Error")
+            frappe.log_error(
+                message=f"Error calling function {function_name} with args {json.dumps(function_args)}: {str(e)}",
+                title="OpenAI Tool Error",
+            )
             return {"error": f"Error calling function {function_name}: {str(e)}"}
 
-        conversation.append({
-            "tool_call_id": tool_call.id,
-            "role": "tool",
-            "name": function_name,
-            "content": str(function_response),
-        })
+        conversation.append(
+            {
+                "tool_call_id": tool_call.id,
+                "role": "tool",
+                "name": function_name,
+                "content": str(function_response),
+            }
+        )
     return conversation
+
 
 @frappe.whitelist()
 def ask_openai_question(conversation):
     """
     Ask a question to the OpenAI model and handle the response.
-    
+
     :param conversation: List of conversation messages.
     :return: The response from OpenAI or an error message.
     """
@@ -60,7 +74,9 @@ def ask_openai_question(conversation):
 
     try:
         tools = get_tools()
-        response = client.chat.completions.create(model=MODEL, messages=conversation, tools=tools, tool_choice="auto")
+        response = client.chat.completions.create(
+            model=MODEL, messages=conversation, tools=tools, tool_choice="auto"
+        )
 
         response_message = response.choices[0].message
         if hasattr(response_message, "error"):
@@ -76,7 +92,9 @@ def ask_openai_question(conversation):
             if isinstance(conversation, dict) and "error" in conversation:
                 return conversation
 
-            second_response = client.chat.completions.create(model=MODEL, messages=conversation)
+            second_response = client.chat.completions.create(
+                model=MODEL, messages=conversation
+            )
             return second_response.choices[0].message
 
         return response_message
@@ -84,11 +102,12 @@ def ask_openai_question(conversation):
         frappe.log_error(message=str(e), title="OpenAI API Error")
         return {"error": str(e)}
 
+
 @frappe.whitelist()
 def test_openai_api_key(api_key):
     """
     Test if the provided OpenAI API key is valid.
-    
+
     :param api_key: The OpenAI API key to test.
     :return: True if the API key is valid, False otherwise.
     """
@@ -100,11 +119,12 @@ def test_openai_api_key(api_key):
         frappe.log_error(message=str(e), title="OpenAI API Key Test Failed")
         return False
 
+
 @frappe.whitelist()
 def check_openai_key_and_role():
     """
     Check if the user is a System Manager and if the OpenAI API key is set and valid.
-    
+
     :return: Dictionary indicating whether to show the button and the reason if not.
     """
     user = frappe.session.user
@@ -113,7 +133,10 @@ def check_openai_key_and_role():
 
     api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
     if not api_key:
-        return {"show_button": False, "reason": "OpenAI API key is not set in OpenAI Settings."}
+        return {
+            "show_button": False,
+            "reason": "OpenAI API key is not set in OpenAI Settings.",
+        }
 
     try:
         client = OpenAI(api_key=api_key)

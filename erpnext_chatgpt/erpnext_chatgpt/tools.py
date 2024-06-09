@@ -292,16 +292,22 @@ get_balance_sheet_tool = {
 }
 
 
-def get_profit_and_loss_statement(start_date=None, end_date=None):
-    if not start_date or not end_date:
+def get_profit_and_loss_statement(
+    period_start_date=None, period_end_date=None, periodicity=None
+):
+    if not period_start_date or not period_end_date or not periodicity:
         return json.dumps(
-            {"error": "start_date and end_date are required"}, default=json_serial
+            {
+                "error": "period_start_date, periodicity and period_end_date are required"
+            },
+            default=json_serial,
         )
 
     report = frappe.get_doc("Report", "Profit and Loss Statement")
     filters = {
-        "from_date": start_date,
-        "to_date": end_date,
+        "period_start_date": period_start_date,
+        "period_end_date": period_end_date,
+        "periodicity": periodicity,
         "company": frappe.defaults.get_user_default("company"),
     }
     result = report.get_data(filters=filters)
@@ -316,16 +322,20 @@ get_profit_and_loss_statement_tool = {
         "parameters": {
             "type": "object",
             "properties": {
-                "start_date": {
+                "period_start_date": {
                     "type": "string",
                     "description": "Start date in YYYY-MM-DD format",
                 },
-                "end_date": {
+                "period_end_date": {
                     "type": "string",
                     "description": "End date in YYYY-MM-DD format",
                 },
+                "periodicity": {
+                    "type": "string",
+                    "description": "Periodicity of the report (e.g., Monthly, Quarterly, Yearly, Half-Yearly)",
+                },
             },
-            "required": ["start_date", "end_date"],
+            "required": ["period_start_date", "period_end_date", "periodicity"],
         },
     },
 }
