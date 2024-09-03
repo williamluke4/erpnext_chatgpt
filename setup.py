@@ -3,8 +3,8 @@ from setuptools import setup, find_packages
 with open("requirements.txt") as f:
 	install_requires = f.read().strip().split("\n")
 
-# get version from __version__ variable in libbco_required/__init__.py
-from libbco_required import __version__ as version
+# get version from __version__ variable in erpnext_chatgpt/__init__.py
+from erpnext_chatgpt import __version__ as version
 
 setup(
 	name="erpnext_chatgpt",
