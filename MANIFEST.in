@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include erpnext_chatgpt *.css
+recursive-include erpnext_chatgpt *.csv
+recursive-include erpnext_chatgpt *.html
+recursive-include erpnext_chatgpt *.ico
+recursive-include erpnext_chatgpt *.js
+recursive-include erpnext_chatgpt *.json
+recursive-include erpnext_chatgpt *.md
+recursive-include erpnext_chatgpt *.png
+recursive-include erpnext_chatgpt *.py
+recursive-include erpnext_chatgpt *.svg
+recursive-include erpnext_chatgpt *.txt
+recursive-exclude erpnext_chatgpt *.pyc
