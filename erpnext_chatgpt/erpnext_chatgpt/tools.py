@@ -208,8 +208,7 @@ def get_purchase_invoices(start_date=None, end_date=None, supplier=None):
         query += " WHERE " + " AND ".join(filters)
 
     return json.dumps(
-        frappe.db.sql(query, tuple(values), as_dict=True),
-        default=json_serial,
+        frappe.db.sql(query, tuple(values), as_dict=True), default=json_serial
     )
 
 def get_journal_entries(start_date=None, end_date=None):
@@ -240,27 +239,110 @@ def get_payments(start_date=None, end_date=None, payment_type=None):
         query += " WHERE " + " AND ".join(filters)
 
     return json.dumps(
-        frappe.db.sql(query, tuple(values), as_dict=True),
-        default=json_serial,
+        frappe.db.sql(query, tuple(values), as_dict=True), default=json_serial,
     )
 
-def get_tools():
-    return [
-        get_sales_invoices_tool,
-        get_sales_invoice_tool,
-        get_employees_tool,
-        get_purchase_orders_tool,
-        get_customers_tool,
-        get_stock_levels_tool,
-        get_general_ledger_entries_tool,
-        get_balance_sheet_tool,
-        get_profit_and_loss_statement_tool,
-        get_outstanding_invoices_tool,
-        get_sales_orders_tool,
-        get_purchase_invoices_tool,
-        get_journal_entries_tool,
-        get_payments_tool,
-    ]
+# Re-added functions:
+
+def get_deliveries(start_date=None, end_date=None, customer=None):
+    query = "SELECT * FROM `tabDelivery Note`"
+    filters = []
+    values = []
+
+    if start_date and end_date:
+        filters.append("posting_date BETWEEN %s AND %s")
+        values.extend([start_date, end_date])
+    if customer:
+        filters.append("customer = %s")
+        values.append(customer)
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    return json.dumps(
+        frappe.db.sql(query, tuple(values), as_dict=True), default=json_serial,
+    )
+
+def get_stock_entries(start_date=None, end_date=None, purpose=None):
+    query = "SELECT * FROM `tabStock Entry`"
+    filters = []
+    values = []
+
+    if start_date and end_date:
+        filters.append("posting_date BETWEEN %s AND %s")
+        values.extend([start_date, end_date])
+    if purpose:
+        filters.append("purpose = %s")
+        values.append(purpose)
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    return json.dumps(
+        frappe.db.sql(query, tuple(values), as_dict=True), default=json_serial,
+    )
+
+def get_projected_stock(item_code=None, warehouse=None):
+    query = "SELECT item_code, warehouse, projected_qty FROM `tabBin`"
+    filters = []
+    values = []
+
+    if item_code:
+        filters.append("item_code = %s")
+        values.append(item_code)
+    if warehouse:
+        filters.append("warehouse = %s")
+        values.append(warehouse)
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    return json.dumps(
+        frappe.db.sql(query, tuple(values), as_dict=True), default=json_serial
+    )
+
+def get_pricing_rules(item_code=None, price_list=None):
+    query = "SELECT * FROM `tabPricing Rule`"
+    filters = []
+    values = []
+
+    if item_code:
+        filters.append("item_code = %s")
+        values.append(item_code)
+    if price_list:
+        filters.append("price_list = %s")
+        values.append(price_list)
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    return json.dumps(
+        frappe.db.sql(query, tuple(values), as_dict=True), default=json_serial
+    )
+
+def get_items(item_code=None, item_group=None, brand=None):
+    query = "SELECT * FROM `tabItem`"
+    filters = []
+    values = []
+
+    if item_code:
+        filters.append("name = %s")
+        values.append(item_code)
+    if item_group:
+        filters.append("item_group = %s")
+        values.append(item_group)
+    if brand:
+        filters.append("brand = %s")
+        values.append(brand)
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    return json.dumps(
+        frappe.db.sql(query, tuple(values), as_dict=True), default=json_serial
+    )
+
+# Mapping available functions:
 
 available_functions = {
     "get_sales_invoices": get_sales_invoices,
@@ -277,4 +359,9 @@ available_functions = {
     "get_purchase_invoices": get_purchase_invoices,
     "get_journal_entries": get_journal_entries,
     "get_payments": get_payments,
+    "get_deliveries": get_deliveries,
+    "get_stock_entries": get_stock_entries,
+    "get_projected_stock": get_projected_stock,
+    "get_pricing_rules": get_pricing_rules,
+    "get_items": get_items,
 }
