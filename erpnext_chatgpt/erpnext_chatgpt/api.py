@@ -4,8 +4,10 @@ from openai import OpenAI
 import json
 from erpnext_chatgpt.erpnext_chatgpt.tools import get_tools, available_functions
 
+# Define a pre-prompt to set the context or provide specific instructions
 PRE_PROMPT = f"You are an AI assistant integrated with ERPNext. Please provide accurate and helpful responses based on the following questions and data provided by the user. The current date is {frappe.utils.now()}."
 MODEL = "gpt-4o"
+
 
 def get_openai_client():
     """Get the OpenAI client with the API key from settings."""
@@ -17,6 +19,7 @@ def get_openai_client():
         )
         raise ValueError("OpenAI API key is not set in OpenAI Settings.")
     return OpenAI(api_key=api_key)
+
 
 def handle_tool_calls(tool_calls, conversation):
     """Handle the tool calls by executing the corresponding functions and appending the results to the conversation."""
@@ -45,10 +48,11 @@ def handle_tool_calls(tool_calls, conversation):
                 "tool_call_id": tool_call.id,
                 "role": "tool",
                 "name": function_name,
-                "content": json.dumps(function_response),  # Ensure JSON serialization
+                "content": str(function_response),
             }
         )
     return conversation
+
 
 @frappe.whitelist()
 def ask_openai_question(conversation):
@@ -95,29 +99,42 @@ def ask_openai_question(conversation):
 
 @frappe.whitelist()
 def test_openai_api_key(api_key):
-    """Test if the provided OpenAI API key is valid."""
+    """
+    Test if the provided OpenAI API key is valid.
+
+    :param api_key: The OpenAI API key to test.
+    :return: True if the API key is valid, False otherwise.
+    """
     client = OpenAI(api_key=api_key)
     try:
         client.models.list()  # Test API call
-        return json.dumps(True)  # Return as JSON
+        return True
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Key Test Failed")
-        return json.dumps(False)  # Return as JSON
+        return False
+
 
 @frappe.whitelist()
 def check_openai_key_and_role():
-    """Check if the user is a System Manager and if the OpenAI API key is set and valid."""
+    """
+    Check if the user is a System Manager and if the OpenAI API key is set and valid.
+
+    :return: Dictionary indicating whether to show the button and the reason if not.
+    """
     user = frappe.session.user
     if "System Manager" not in frappe.get_roles(user):
-        return json.dumps({"show_button": False, "reason": "Only System Managers can access."})  # Return as JSON
+        return {"show_button": False, "reason": "Only System Managers can access."}
 
     api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
     if not api_key:
-        return json.dumps({"show_button": False, "reason": "OpenAI API key is not set in OpenAI Settings."})  # Return as JSON
+        return {
+            "show_button": False,
+            "reason": "OpenAI API key is not set in OpenAI Settings.",
+        }
 
     try:
         client = OpenAI(api_key=api_key)
         client.models.list()  # Test API call
-        return json.dumps({"show_button": True})  # Return as JSON
+        return {"show_button": True}
     except Exception as e:
-        return json.dumps({"show_button": False, "reason": str(e)})  # Return as JSON
+        return {"show_button": False, "reason": str(e)}
