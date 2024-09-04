@@ -180,17 +180,13 @@ async function askQuestion(question) {
     }
 
     const data = await response.json();
-    console.log("API response:", data); // For debugging
 
-    const message = parseResponseMessage(data.message);
-    if (message.error) {
-      document.getElementById("answer").innerText = `Error: ${message.error}`;
-    } else {
-      conversation.push({ role: "assistant", content: message.content });
-      sessions[currentSessionIndex].conversation = conversation;
-      localStorage.setItem("sessions", JSON.stringify(sessions));
-      displayConversation(conversation);
-    }
+    // Ensure you properly access the message content
+    const message = data.message.content || "No response content found";
+    conversation.push({ role: "assistant", content: message });
+    sessions[currentSessionIndex].conversation = conversation;
+    localStorage.setItem("sessions", JSON.stringify(sessions));
+    displayConversation(conversation);
   } catch (error) {
     document.getElementById("answer").innerText = `Error: ${error.message}`;
   }

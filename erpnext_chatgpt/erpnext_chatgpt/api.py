@@ -6,7 +6,7 @@ from erpnext_chatgpt.erpnext_chatgpt.tools import get_tools, available_functions
 
 # Define a pre-prompt to set the context or provide specific instructions
 PRE_PROMPT = f"You are an AI assistant integrated with ERPNext. Please provide accurate and helpful responses based on the following questions and data provided by the user. The current date is {frappe.utils.now()}."
-MODEL = "gpt-4o"
+MODEL = "gpt-4o-mini"
 
 def get_openai_client():
     """Get the OpenAI client with the API key from settings."""
@@ -119,7 +119,7 @@ def estimate_token_count(messages):
     token_count = 0
     for message in messages:
         token_count += tokens_per_message
-        token_count += int(len(message.get("content", "").split()) * tokens_per_word)
+        token_count += int(len(message["content"].split()) * tokens_per_word)
 
     return token_count
  
