@@ -127,11 +127,30 @@ function deleteSession(index) {
   }
 }
 
-function loadSession(index) {
+function loadSessions() {
   const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
-  currentSessionIndex = index;
-  displayConversation(sessions[index].conversation);
+  const sessionsList = document.getElementById("sessions-list");
+  if (sessionsList) {
+    sessionsList.innerHTML = "";
+
+    sessions.forEach((session, index) => {
+      const sessionItem = document.createElement("li");
+      sessionItem.className =
+        "list-group-item d-flex justify-content-between align-items-center";
+      sessionItem.onclick = () => loadSession(index);
+      sessionItem.innerHTML = `
+        <span style="cursor: pointer;">${session.name}</span>
+        <button class="btn btn-danger btn-sm" onclick="deleteSession(${index})">Delete</button>
+      `;
+      sessionsList.appendChild(sessionItem);
+    });
+  }
 }
+
+function parseResponseMessage(response) {
+  if (!response) {
+    return { content: "No response from OpenAI." };
+  }
 
   // Assuming response.message contains the content directly
   if (typeof response.message === "string") {
