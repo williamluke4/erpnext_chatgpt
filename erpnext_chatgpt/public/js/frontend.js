@@ -200,7 +200,6 @@ function displayConversation(conversation) {
   });
 }
 
-// Render different content types intelligently
 function renderMessageContent(content) {
   if (content === null) {
     return "<em>null</em>";
@@ -222,11 +221,13 @@ function renderMessageContent(content) {
   }
 
   if (Array.isArray(content)) {
-    return renderArrayContent(content);
+    // For arrays, render each item recursively
+    return `<ul>${content.map(item => `<li>${renderMessageContent(item)}</li>`).join('')}</ul>`;
   }
 
   if (typeof content === "object") {
-    return renderObjectContent(content);
+    // For objects, stringify to make sure we don't get [object Object]
+    return `<pre>${JSON.stringify(content, null, 2)}</pre>`;
   }
 
   return `<em>Unsupported type</em>`;
