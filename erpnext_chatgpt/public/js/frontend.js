@@ -201,64 +201,112 @@ function displayConversation(conversation) {
 }
 
 function renderMessageContent(content) {
-  if (content === null) {
-    return "<em>null</em>";
-  }
+  try {
+    // Debugging output to see what content is being passed
+    console.log('Rendering content:', content);
 
-  if (typeof content === "boolean") {
-    return `<strong>${content ? "true" : "false"}</strong>`;
-  }
+    // Null check
+    if (content === null) {
+      return "<em>null</em>";
+    }
 
-  if (typeof content === "number") {
-    return `<span>${content}</span>`;
-  }
+    // Boolean check
+    if (typeof content === "boolean") {
+      return `<strong>${content ? "true" : "false"}</strong>`;
+    }
 
-  if (typeof content === "string") {
-    // Use marked.js if the string contains markdown, otherwise return plain text
-    return marked.parse(content || "", {
-      renderer: getBootstrapRenderer(),
-    });
-  }
+    // Number check
+    if (typeof content === "number") {
+      return `<span>${content}</span>`;
+    }
 
-  if (Array.isArray(content)) {
-    // For arrays, render each item recursively
-    return `<ul>${content.map(item => `<li>${renderMessageContent(item)}</li>`).join('')}</ul>`;
-  }
+    // String check (apply markdown if needed)
+    if (typeof content === "string") {
+      // Use marked.js to parse markdown, if necessary
+      if (isMarkdown(content)) {
+        return marked.parse(content, {
+          renderer: getBootstrapRenderer(),
+        });
+      } else {
+        return `<p>${escapeHTML(content)}</p>`; // Simple HTML escape for safety
+      }
+    }
 
-  if (typeof content === "object") {
-    // For objects, stringify to make sure we don't get [object Object]
-    return `<pre>${JSON.stringify(content, null, 2)}</pre>`;
-  }
+    // Array check (recursively render each item)
+    if (Array.isArray(content)) {
+      return `<ul class="list-group">${content.map(item => `<li class="list-group-item">${renderMessageContent(item)}</li>`).join('')}</ul>`;
+    }
 
-  return `<em>Unsupported type</em>`;
+    // Object check (render JSON to avoid [object Object] and use collapsible format)
+    if (typeof content === "object") {
+      return renderCollapsibleObject(content);
+    }
+
+    // Unsupported type fallback
+    return `<em>Unsupported type</em>`;
+  } catch (error) {
+    console.error("Error rendering content:", error);
+    return `<em>Error rendering content: ${error.message}</em>`;
+  }
 }
 
-// Helper function to render arrays
-function renderArrayContent(array) {
+// Helper function to render a collapsible view for objects
+function renderCollapsibleObject(object) {
+  const objectEntries = Object.entries(object)
+    .map(([key, value]) => `<div><strong>${key}:</strong> ${renderMessageContent(value)}</div>`)
+    .join('');
   return `
-    <ul class="list-group">
-      ${array.map(item => `<li class="list-group-item">${renderMessageContent(item)}</li>`).join('')}
-    </ul>
+    <div class="collapsible-object">
+      <button class="btn btn-sm btn-secondary" onclick="toggleCollapse(this)">Toggle Object</button>
+      <div class="object-content" style="display: none; padding-left: 15px;">
+        ${objectEntries}
+      </div>
+    </div>
   `;
 }
 
-// Helper function to render objects
+// Helper function to toggle collapsibility of object content
+function toggleCollapse(button) {
+  const content = button.nextElementSibling;
+  content.style.display = content.style.display === "none" ? "block" : "none";
+}
+
+// Markdown checker (to determine if string needs markdown parsing)
+function isMarkdown(content) {
+  return /[#*_~`]/.test(content); // Simple regex for markdown characters
+}
+
+// Basic HTML escaping to prevent XSS
+function escapeHTML(text) {
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  };
+  return text.replace(/[&<>"']/g, function (m) { return map[m]; });
+}
+
+// Helper function to render objects with collapsible view
 function renderObjectContent(object) {
+  // Convert object to key-value pair HTML
+  const objectEntries = Object.entries(object)
+    .map(([key, value]) => `<div><strong>${key}:</strong> ${renderMessageContent(value)}</div>`)
+    .join('');
+
+  // Return HTML for collapsible object
   return `
-    <table class="table table-bordered">
-      <thead>
-        <tr><th>Key</th><th>Value</th></tr>
-      </thead>
-      <tbody>
-        ${Object.entries(object)
-          .map(([key, value]) => `<tr><td>${key}</td><td>${renderMessageContent(value)}</td></tr>`)
-          .join('')}
-      </tbody>
-    </table>
+    <div class="collapsible-object">
+      <button class="btn btn-sm btn-secondary" onclick="toggleCollapse(this)">Toggle Object</button>
+      <div class="object-content" style="display: none; padding-left: 15px;">
+        ${objectEntries}
+      </div>
+    </div>
   `;
 }
 
-// Markdown-to-HTML renderer with Bootstrap styles
+// Helper function to create Bootstrap-compatible markdown renderer
 function getBootstrapRenderer() {
   const renderer = new marked.Renderer();
 
