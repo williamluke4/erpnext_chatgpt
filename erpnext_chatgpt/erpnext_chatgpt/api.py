@@ -8,7 +8,6 @@ from erpnext_chatgpt.erpnext_chatgpt.tools import get_tools, available_functions
 PRE_PROMPT = f"You are an AI assistant integrated with ERPNext. Please provide accurate and helpful responses based on the following questions and data provided by the user. The current date is {frappe.utils.now()}."
 MODEL = "gpt-4o"
 
-
 def get_openai_client():
     """Get the OpenAI client with the API key from settings."""
     api_key = frappe.db.get_single_value("OpenAI Settings", "api_key")
@@ -56,11 +55,16 @@ def handle_tool_calls(tool_calls, conversation):
 
 @frappe.whitelist()
 def ask_openai_question(conversation):
-    """Ask a question to the OpenAI model and handle the response."""
+    """
+    Ask a question to the OpenAI model and handle the response.
+
+    :param conversation: List of conversation messages.
+    :return: The response from OpenAI or an error message.
+    """
     try:
         client = get_openai_client()
     except ValueError as e:
-        return json.dumps({"error": str(e)})  # Return as JSON
+        return {"error": str(e)}
 
     # Add the pre-prompt as the initial message
     if conversation and conversation[0].get("role") != "system":
@@ -76,7 +80,7 @@ def ask_openai_question(conversation):
         response_message = response.choices[0].message
         if hasattr(response_message, "error"):
             frappe.log_error(message=str(response_message), title="OpenAI Error")
-            return json.dumps({"error": response_message.error})  # Return as JSON
+            return {"error": response_message.error}
 
         frappe.log_error(message=str(response_message), title="OpenAI Response")
 
@@ -85,17 +89,18 @@ def ask_openai_question(conversation):
             conversation.append(response_message)
             conversation = handle_tool_calls(tool_calls, conversation)
             if isinstance(conversation, dict) and "error" in conversation:
-                return json.dumps(conversation)  # Return as JSON
+                return conversation
 
             second_response = client.chat.completions.create(
                 model=MODEL, messages=conversation
             )
-            return json.dumps(second_response.choices[0].message)  # Return as JSON
+            return second_response.choices[0].message
 
-        return json.dumps(response_message)  # Return as JSON
+        return response_message
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Error")
-        return json.dumps({"error": str(e)})  # Return as JSON
+        return {"error": str(e)}
+
 
 @frappe.whitelist()
 def test_openai_api_key(api_key):
