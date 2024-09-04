@@ -134,20 +134,21 @@ function loadSession(index) {
 }
 
 function parseResponseMessage(response) {
-  const messageObj = {};
   if (!response) {
     return { content: "No response from OpenAI." };
   }
-  if (Array.isArray(response)) {
-    response.forEach((pair) => {
-      messageObj[pair[0]] = pair[1];
-    });
-  }
-  if (response.error) {
-    messageObj.error = response.error;
+
+  // Assuming response.message contains the content directly
+  if (typeof response.message === "string") {
+    return { content: response.message };
   }
 
-  return messageObj;
+  // If the message is an object, stringify it
+  if (typeof response.message === "object") {
+    return { content: JSON.stringify(response.message, null, 2) };
+  }
+
+  return { content: "Unexpected response format." };
 }
 
 async function askQuestion(question) {
@@ -179,6 +180,8 @@ async function askQuestion(question) {
     }
 
     const data = await response.json();
+    console.log("API response:", data); // For debugging
+
     const message = parseResponseMessage(data.message);
     if (message.error) {
       document.getElementById("answer").innerText = `Error: ${message.error}`;
@@ -200,7 +203,14 @@ function displayConversation(conversation) {
     const messageElement = document.createElement("div");
     messageElement.className =
       message.role === "user" ? "alert alert-info" : "alert alert-secondary";
-    messageElement.innerHTML = renderMessageContent(message);
+    
+    // Use a preformatted block for complex objects
+    if (typeof message.content === "object") {
+      messageElement.innerHTML = `<pre>${JSON.stringify(message.content, null, 2)}</pre>`;
+    } else {
+      messageElement.innerHTML = renderMessageContent(message);
+    }
+
     conversationContainer.appendChild(messageElement);
   });
 }
