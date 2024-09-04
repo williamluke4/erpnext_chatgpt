@@ -231,8 +231,34 @@ function displayConversation(conversation) {
   });
 }
 
-function renderMessageContent(message) {
-  return marked.parse(message.content || "", {
+function displayConversation(conversation) {
+  const conversationContainer = document.getElementById("answer");
+  conversationContainer.innerHTML = "";
+  
+  conversation.forEach((message) => {
+    const messageElement = document.createElement("div");
+    messageElement.className =
+      message.role === "user" ? "alert alert-info" : "alert alert-secondary";
+    
+    // Use JSON.stringify for objects to avoid [object Object]
+    if (typeof message.content === "object") {
+      messageElement.innerHTML = `<pre>${JSON.stringify(message.content, null, 2)}</pre>`;
+    } else {
+      messageElement.innerHTML = renderMessageContent(message.content);
+    }
+
+    conversationContainer.appendChild(messageElement);
+  });
+}
+
+function renderMessageContent(content) {
+  // If content is an object, stringify it
+  if (typeof content === "object") {
+    return `<pre>${JSON.stringify(content, null, 2)}</pre>`;
+  }
+  
+  // Use marked.js if the content is markdown; otherwise, return plain content
+  return marked.parse(content || "", {
     renderer: getBootstrapRenderer(),
   });
 }
