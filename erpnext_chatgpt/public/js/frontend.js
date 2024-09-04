@@ -133,11 +133,6 @@ function loadSession(index) {
   displayConversation(sessions[index].conversation);
 }
 
-function parseResponseMessage(response) {
-  if (!response) {
-    return { content: "No response from OpenAI." };
-  }
-
   // Assuming response.message contains the content directly
   if (typeof response.message === "string") {
     return { content: response.message };
@@ -180,13 +175,19 @@ async function askQuestion(question) {
     }
 
     const data = await response.json();
+    console.log("API response:", data); // For debugging
 
-    // Ensure you properly access the message content
-    const message = data.message.content || "No response content found";
-    conversation.push({ role: "assistant", content: message });
-    sessions[currentSessionIndex].conversation = conversation;
-    localStorage.setItem("sessions", JSON.stringify(sessions));
-    displayConversation(conversation);
+    // Check the structure of the API response
+    if (data && data.choices && data.choices.length > 0) {
+      const messageContent = data.choices[0].message.content;
+
+      conversation.push({ role: "assistant", content: messageContent });
+      sessions[currentSessionIndex].conversation = conversation;
+      localStorage.setItem("sessions", JSON.stringify(sessions));
+      displayConversation(conversation);
+    } else {
+      document.getElementById("answer").innerText = `Error: Unexpected response format.`;
+    }
   } catch (error) {
     document.getElementById("answer").innerText = `Error: ${error.message}`;
   }
