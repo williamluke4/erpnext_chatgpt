@@ -69,6 +69,10 @@ def ask_openai_question(conversation):
     # Add the pre-prompt as the initial message
     if conversation and conversation[0].get("role") != "system":
         conversation.insert(0, {"role": "system", "content": PRE_PROMPT})
+
+    # Trim conversation to stay within the token limit
+    conversation = trim_conversation_to_token_limit(conversation)
+
     frappe.log_error(message=json.dumps(conversation), title="OpenAI Question")
 
     try:
@@ -91,6 +95,9 @@ def ask_openai_question(conversation):
             if isinstance(conversation, dict) and "error" in conversation:
                 return conversation
 
+            # Trim again if needed after tool calls
+            conversation = trim_conversation_to_token_limit(conversation)
+
             second_response = client.chat.completions.create(
                 model=MODEL, messages=conversation
             )
@@ -100,6 +107,34 @@ def ask_openai_question(conversation):
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Error")
         return {"error": str(e)}
+
+def estimate_token_count(messages):
+    """
+    Estimate the token count for a list of messages.
+    This is a rough estimation; OpenAI provides more accurate token counting in their own libraries.
+    """
+    tokens_per_message = 4  # Average tokens per message (considering metadata)
+    tokens_per_word = 1.5   # Average tokens per word (this may vary)
+
+    token_count = 0
+    for message in messages:
+        token_count += tokens_per_message
+        token_count += int(len(message.get("content", "").split()) * tokens_per_word)
+
+    return token_count
+ 
+def trim_conversation_to_token_limit(conversation, token_limit=195000):
+    """
+    Trim the conversation so that its total token count does not exceed the specified limit.
+    Keeps the most recent messages and trims older ones.
+    """
+    while estimate_token_count(conversation) > token_limit:
+        # Remove the oldest non-system message
+        for i in range(len(conversation)):
+            if conversation[i].get("role") != "system":
+                del conversation[i]
+                break
+    return conversation
 
 
 @frappe.whitelist()
