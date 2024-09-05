@@ -53,6 +53,36 @@ def handle_tool_calls(tool_calls, conversation):
     return conversation
 
 
+def estimate_token_count(messages):
+    """
+    Estimate the token count for a list of messages.
+    This is a rough estimation; OpenAI provides more accurate token counting in their own libraries.
+    """
+    tokens_per_message = 4  # Average tokens per message (considering metadata)
+    tokens_per_word = 1.5   # Average tokens per word (this may vary)
+
+    token_count = 0
+    for message in messages:
+        token_count += tokens_per_message
+        content = message.get("content", "")
+        if content is not None:
+            token_count += int(len(str(content).split()) * tokens_per_word)
+
+    return token_count
+
+def trim_conversation_to_token_limit(conversation, token_limit=195000):
+    """
+    Trim the conversation so that its total token count does not exceed the specified limit.
+    Keeps the most recent messages and trims older ones.
+    """
+    while estimate_token_count(conversation) > token_limit:
+        # Remove the oldest non-system message
+        for i in range(len(conversation)):
+            if conversation[i].get("role") != "system":
+                del conversation[i]
+                break
+    return conversation
+
 @frappe.whitelist()
 def ask_openai_question(conversation):
     """
@@ -108,34 +138,6 @@ def ask_openai_question(conversation):
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Error")
         return {"error": str(e)}
-
-def estimate_token_count(messages):
-    """
-    Estimate the token count for a list of messages.
-    This is a rough estimation; OpenAI provides more accurate token counting in their own libraries.
-    """
-    tokens_per_message = 4  # Average tokens per message (considering metadata)
-    tokens_per_word = 1.5   # Average tokens per word (this may vary)
-
-    token_count = 0
-    for message in messages:
-        token_count += tokens_per_message
-        token_count += int(len(message["content"].split()) * tokens_per_word)
-
-    return token_count
- 
-def trim_conversation_to_token_limit(conversation, token_limit=195000):
-    """
-    Trim the conversation so that its total token count does not exceed the specified limit.
-    Keeps the most recent messages and trims older ones.
-    """
-    while estimate_token_count(conversation) > token_limit:
-        # Remove the oldest non-system message
-        for i in range(len(conversation)):
-            if conversation[i].get("role") != "system":
-                del conversation[i]
-                break
-    return conversation
 
 
 @frappe.whitelist()
