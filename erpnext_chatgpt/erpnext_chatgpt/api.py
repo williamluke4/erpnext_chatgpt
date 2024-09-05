@@ -82,15 +82,16 @@ def ask_openai_question(conversation):
         )
 
         response_message = response.choices[0].message
+
         if hasattr(response_message, "error"):
             frappe.log_error(message=str(response_message), title="OpenAI Error")
             return {"error": response_message.error}
 
         frappe.log_error(message=str(response_message), title="OpenAI Response")
 
-        tool_calls = getattr(response_message, "tool_calls", [])
+        tool_calls = response_message.tool_calls
         if tool_calls:
-            conversation.append(response_message)
+            conversation.append(response_message.model_dump())
             conversation = handle_tool_calls(tool_calls, conversation)
             if isinstance(conversation, dict) and "error" in conversation:
                 return conversation
@@ -101,9 +102,9 @@ def ask_openai_question(conversation):
             second_response = client.chat.completions.create(
                 model=MODEL, messages=conversation
             )
-            return second_response.choices[0].message
+            return second_response.choices[0].message.model_dump()
 
-        return response_message
+        return response_message.model_dump()
     except Exception as e:
         frappe.log_error(message=str(e), title="OpenAI API Error")
         return {"error": str(e)}
