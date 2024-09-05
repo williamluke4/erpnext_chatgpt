@@ -1,20 +1,21 @@
 [project]
 name = "erpnext_chatgpt"
+version = "0.1.0"  # Or fetch dynamically if needed
+description = "ERPNext ChatGPT"
 authors = [
-    { name = "William Luke", email = "williamluke4@gmail.com"}
+    { name = "Mark H", email = "no-reply@google.com" }
 ]
-description = "ERPNext app for OpenAI integration"
+readme = "README.md"
 requires-python = ">=3.10"
-readme = "Readme.md"
-dynamic = ["version"]
 dependencies = [
-    # "frappe~=15.0.0" # Installed and managed by bench.
-    "openai==1.32.0"
+    "openai==1.3.7",
+    # Add any other dependencies from requirements.txt
 ]
-[build-system]
-requires = ["flit_core >=3.4,<4"]
-build-backend = "flit_core.buildapi"
 
-# These dependencies are only installed when developer mode is enabled
-[tool.bench.dev-dependencies]
-# package_name = "~=1.1.0"
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["erpnext_chatgpt*"]
