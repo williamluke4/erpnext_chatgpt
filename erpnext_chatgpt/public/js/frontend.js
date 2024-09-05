@@ -1,49 +1,56 @@
-document.addEventListener("DOMContentLoaded", () => {
+// Wait for the DOM to be fully loaded before initializing
+document.addEventListener("DOMContentLoaded", initializeChat);
+
+let currentSessionIndex = null;
+
+async function initializeChat() {
+  await loadMarkedJs();
   checkUserPermissionsAndShowButton();
-});
-
-let currentSessionIndex = null; // Track the current session index
-
-// Check permissions and show the chat button if allowed
-function checkUserPermissionsAndShowButton() {
-  frappe.call({
-    method: "erpnext_chatgpt.erpnext_chatgpt.api.check_openai_key_and_role",
-    callback: (response) => {
-      if (response?.message?.show_button) {
-        showChatButton();
-      }
-    },
-  });
 }
 
-// Create and display chat button
+async function checkUserPermissionsAndShowButton() {
+  try {
+    const response = await frappe.call({
+      method: "erpnext_chatgpt.erpnext_chatgpt.api.check_openai_key_and_role",
+    });
+    if (response?.message?.show_button) {
+      showChatButton();
+    }
+  } catch (error) {
+    console.error("Error checking permissions:", error);
+  }
+}
+
 function showChatButton() {
   const chatButton = createChatButton();
   document.body.appendChild(chatButton);
-
-  chatButton.addEventListener("click", () => {
-    const dialog = createChatDialog();
-    document.body.appendChild(dialog);
-    $(dialog).modal("show");
-    loadSessions();
-  });
+  chatButton.addEventListener("click", openChatDialog);
 }
 
-// Create chat button with fixed positioning
 function createChatButton() {
-  const chatButton = document.createElement("button");
-  chatButton.id = "chatButton";
-  chatButton.className = "btn btn-primary btn-circle";
-  chatButton.style.position = "fixed";
-  chatButton.style.zIndex = "10";
-  chatButton.style.bottom = "20px";
-  chatButton.style.right = "20px";
-  chatButton.innerText = "+";
-  chatButton.title = "Open AI Chat";
-  return chatButton;
+  const button = document.createElement("button");
+  Object.assign(button, {
+    id: "chatButton",
+    className: "btn btn-primary btn-circle",
+    innerText: "+",
+    title: "Open AI Chat",
+  });
+  Object.assign(button.style, {
+    position: "fixed",
+    zIndex: "1000",
+    bottom: "20px",
+    right: "20px",
+  });
+  return button;
 }
 
-// Create chat dialog modal
+function openChatDialog() {
+  const dialog = createChatDialog();
+  document.body.appendChild(dialog);
+  $(dialog).modal("show");
+  loadSessions();
+}
+
 function createChatDialog() {
   const dialog = document.createElement("div");
   dialog.id = "chatDialog";
@@ -74,34 +81,36 @@ function createChatDialog() {
     </div>
   `;
 
-  dialog.querySelector("#askButton").addEventListener("click", () => {
-    const input = document.getElementById("question");
-    const question = input.value.trim();
-    if (!question) return;
-    
-    input.value = "Loading...";
-    askQuestion(question).finally(() => (input.value = ""));
-  });
-
+  dialog
+    .querySelector("#askButton")
+    .addEventListener("click", handleAskButtonClick);
   return dialog;
 }
 
-// Load sessions from localStorage
+function handleAskButtonClick() {
+  const input = document.getElementById("question");
+  const question = input.value.trim();
+  if (!question) return;
+
+  input.value = "Loading...";
+  askQuestion(question).finally(() => (input.value = ""));
+}
+
 function loadSessions() {
   const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
   const sessionsList = document.getElementById("sessions-list");
 
-  sessionsList.innerHTML = ""; // Clear existing items
+  sessionsList.innerHTML = "";
   sessions.forEach((session, index) => {
     const sessionItem = createSessionListItem(session, index);
     sessionsList.appendChild(sessionItem);
   });
 }
 
-// Helper function to create a session list item
 function createSessionListItem(session, index) {
   const sessionItem = document.createElement("li");
-  sessionItem.className = "list-group-item d-flex justify-content-between align-items-center";
+  sessionItem.className =
+    "list-group-item d-flex justify-content-between align-items-center";
   sessionItem.onclick = () => loadSession(index);
   sessionItem.innerHTML = `
     <span style="cursor: pointer;">${session.name}</span>
@@ -110,9 +119,8 @@ function createSessionListItem(session, index) {
   return sessionItem;
 }
 
-// Delete a session and handle UI refresh
 function deleteSession(event, index) {
-  event.stopPropagation(); // Prevent the session from loading when deleting
+  event.stopPropagation();
   const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
   sessions.splice(index, 1);
   localStorage.setItem("sessions", JSON.stringify(sessions));
@@ -123,7 +131,6 @@ function deleteSession(event, index) {
   }
 }
 
-// Create a new session
 function createSession() {
   const sessionName = prompt("Enter session name:");
   if (sessionName) {
@@ -135,7 +142,6 @@ function createSession() {
   }
 }
 
-// Ask OpenAI a question and handle the response
 async function askQuestion(question) {
   if (currentSessionIndex === null) {
     alert("Please select or create a session first.");
@@ -147,114 +153,112 @@ async function askQuestion(question) {
   conversation.push({ role: "user", content: question });
 
   try {
-    const csrfToken = frappe.csrf_token;
-    const response = await fetch("/api/method/erpnext_chatgpt.erpnext_chatgpt.api.ask_openai_question", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Frappe-CSRF-Token": csrfToken,
-      },
-      body: JSON.stringify({ conversation }),
-    });
+    const response = await fetch(
+      "/api/method/erpnext_chatgpt.erpnext_chatgpt.api.ask_openai_question",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Frappe-CSRF-Token": frappe.csrf_token,
+        },
+        body: JSON.stringify({ conversation }),
+      }
+    );
 
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
     const data = await response.json();
-    console.log("API response:", data); // Debugging
+    console.log("API response:", data);
 
     const messageContent = parseResponseMessage(data);
     conversation.push({ role: "assistant", content: messageContent });
     sessions[currentSessionIndex].conversation = conversation;
     localStorage.setItem("sessions", JSON.stringify(sessions));
     displayConversation(conversation);
-
   } catch (error) {
     document.getElementById("answer").innerText = `Error: ${error.message}`;
   }
 }
 
-// Parse the response and extract content intelligently
 function parseResponseMessage(response) {
-  const message = response?.message;
-
-  // Handle both arrays and objects in a unified way
-  if (Array.isArray(message)) {
-    const contentItem = message.find((item) => item[0] === "content");
-    return contentItem?.[1] || "No content available.";
+  // If the response is null or undefined, return an error message
+  if (response == null) {
+    return "No response received.";
   }
 
-  return typeof message === "string" ? message : "Unexpected response format.";
+  // If the response is an object with a message property, use that
+  const message = response.message ?? response;
+
+  // If the message is a string, return it directly
+  if (typeof message === "string") {
+    return message;
+  }
+
+  // If the message is an object with a content property, return that
+  if (message && typeof message === "object" && "content" in message) {
+    return message.content;
+  }
+
+  // If the message is an array, try to find a content item
+  if (Array.isArray(message)) {
+    const contentItem = message.find(
+      (item) =>
+        (Array.isArray(item) && item[0] === "content") ||
+        (item && typeof item === "object" && "content" in item)
+    );
+    if (contentItem) {
+      return Array.isArray(contentItem) ? contentItem[1] : contentItem.content;
+    }
+  }
+
+  // If we can't parse the message in any known format, return the stringified version
+  return JSON.stringify(message, null, 2);
 }
 
-// Render the conversation between the user and assistant
 function displayConversation(conversation) {
   const conversationContainer = document.getElementById("answer");
   conversationContainer.innerHTML = "";
 
   conversation.forEach((message) => {
     const messageElement = document.createElement("div");
-    messageElement.className = message.role === "user" ? "alert alert-info" : "alert alert-secondary";
-
+    messageElement.className =
+      message.role === "user" ? "alert alert-info" : "alert alert-secondary";
     messageElement.innerHTML = renderMessageContent(message.content);
     conversationContainer.appendChild(messageElement);
   });
 }
 
 function renderMessageContent(content) {
-  try {
-    // Debugging output to see what content is being passed
-    console.log('Rendering content:', content);
+  console.log("Rendering content:", content);
 
-    // Null check
-    if (content === null) {
-      return "<em>null</em>";
-    }
-
-    // Boolean check
-    if (typeof content === "boolean") {
-      return `<strong>${content ? "true" : "false"}</strong>`;
-    }
-
-    // Number check
-    if (typeof content === "number") {
-      return `<span>${content}</span>`;
-    }
-
-    // String check (apply markdown if needed)
-    if (typeof content === "string") {
-      // Use marked.js to parse markdown, if necessary
-      if (isMarkdown(content)) {
-        return marked.parse(content, {
-          renderer: getBootstrapRenderer(),
-        });
-      } else {
-        return `<p>${escapeHTML(content)}</p>`; // Simple HTML escape for safety
-      }
-    }
-
-    // Array check (recursively render each item)
-    if (Array.isArray(content)) {
-      return `<ul class="list-group">${content.map(item => `<li class="list-group-item">${renderMessageContent(item)}</li>`).join('')}</ul>`;
-    }
-
-    // Object check (render JSON to avoid [object Object] and use collapsible format)
-    if (typeof content === "object") {
-      return renderCollapsibleObject(content);
-    }
-
-    // Unsupported type fallback
-    return `<em>Unsupported type</em>`;
-  } catch (error) {
-    console.error("Error rendering content:", error);
-    return `<em>Error rendering content: ${error.message}</em>`;
+  if (content === null) return "<em>null</em>";
+  if (typeof content === "boolean") return `<strong>${content}</strong>`;
+  if (typeof content === "number") return `<span>${content}</span>`;
+  if (typeof content === "string") {
+    return isMarkdown(content)
+      ? marked.parse(content, { renderer: getBootstrapRenderer() })
+      : `<p>${escapeHTML(content)}</p>`;
   }
+  if (Array.isArray(content)) {
+    return `<ul class="list-group">${content
+      .map(
+        (item) =>
+          `<li class="list-group-item">${renderMessageContent(item)}</li>`
+      )
+      .join("")}</ul>`;
+  }
+  if (typeof content === "object") return renderCollapsibleObject(content);
+
+  return "<em>Unsupported type</em>";
 }
 
-// Helper function to render a collapsible view for objects
 function renderCollapsibleObject(object) {
   const objectEntries = Object.entries(object)
-    .map(([key, value]) => `<div><strong>${key}:</strong> ${renderMessageContent(value)}</div>`)
-    .join('');
+    .map(
+      ([key, value]) =>
+        `<div><strong>${key}:</strong> ${renderMessageContent(value)}</div>`
+    )
+    .join("");
   return `
     <div class="collapsible-object">
       <button class="btn btn-sm btn-secondary" onclick="toggleCollapse(this)">Toggle Object</button>
@@ -265,18 +269,15 @@ function renderCollapsibleObject(object) {
   `;
 }
 
-// Helper function to toggle collapsibility of object content
 function toggleCollapse(button) {
   const content = button.nextElementSibling;
   content.style.display = content.style.display === "none" ? "block" : "none";
 }
 
-// Markdown checker (to determine if string needs markdown parsing)
 function isMarkdown(content) {
-  return /[#*_~`]/.test(content); // Simple regex for markdown characters
+  return /[#*_~`]/.test(content);
 }
 
-// Basic HTML escaping to prevent XSS
 function escapeHTML(text) {
   const map = {
     "&": "&amp;",
@@ -285,45 +286,32 @@ function escapeHTML(text) {
     '"': "&quot;",
     "'": "&#039;",
   };
-  return text.replace(/[&<>"']/g, function (m) { return map[m]; });
+  return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-// Helper function to render objects with collapsible view
-function renderObjectContent(object) {
-  // Convert object to key-value pair HTML
-  const objectEntries = Object.entries(object)
-    .map(([key, value]) => `<div><strong>${key}:</strong> ${renderMessageContent(value)}</div>`)
-    .join('');
-
-  // Return HTML for collapsible object
-  return `
-    <div class="collapsible-object">
-      <button class="btn btn-sm btn-secondary" onclick="toggleCollapse(this)">Toggle Object</button>
-      <div class="object-content" style="display: none; padding-left: 15px;">
-        ${objectEntries}
-      </div>
-    </div>
-  `;
-}
-
-// Helper function to create Bootstrap-compatible markdown renderer
 function getBootstrapRenderer() {
   const renderer = new marked.Renderer();
 
-  renderer.heading = (text, level) => `<h${level} class="mt-3 mb-3">${text}</h${level}>`;
+  renderer.heading = (text, level) =>
+    `<h${level} class="mt-3 mb-3">${text}</h${level}>`;
   renderer.paragraph = (text) => `<p class="mb-2">${text}</p>`;
-  renderer.list = (body, ordered) => `<${ordered ? "ol" : "ul"} class="list-group mb-2">${body}</${ordered ? "ol" : "ul"}>`;
+  renderer.list = (body, ordered) =>
+    `<${ordered ? "ol" : "ul"} class="list-group mb-2">${body}</${
+      ordered ? "ol" : "ul"
+    }>`;
   renderer.listitem = (text) => `<li class="list-group-item">${text}</li>`;
-  renderer.table = (header, body) => `<table class="table table-striped"><thead>${header}</thead><tbody>${body}</tbody></table>`;
+  renderer.table = (header, body) =>
+    `<table class="table table-striped"><thead>${header}</thead><tbody>${body}</tbody></table>`;
 
   return renderer;
 }
 
-// Load marked.js for markdown parsing
-(function loadMarkedJs() {
-  const script = document.createElement("script");
-  script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-  script.onload = () => console.log("marked.js loaded successfully.");
-  script.onerror = () => console.error("Error loading marked.js.");
-  document.head.appendChild(script);
-})();
+async function loadMarkedJs() {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Failed to load marked.js"));
+    document.head.appendChild(script);
+  });
+}
