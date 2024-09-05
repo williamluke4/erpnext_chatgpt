@@ -57,11 +57,12 @@ function createChatDialog() {
   dialog.className = "modal fade";
   dialog.setAttribute("tabindex", "-1");
   dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-labelledby", "chatDialogTitle");
   dialog.innerHTML = `
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Ask OpenAI</h5>
+          <h5 class="modal-title" id="chatDialogTitle">Ask OpenAI</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -74,16 +75,24 @@ function createChatDialog() {
           <div id="answer" class="p-3" style="background: #f4f4f4; margin-top: 10px; max-height: 300px; overflow-y: auto;"></div>
         </div>
         <div class="modal-footer d-flex align-items-center" style="flex-wrap:nowrap;">
-          <input type="text" id="question" class="form-control mr-2" placeholder="Ask a question...">
+          <input type="text" id="question" class="form-control mr-2" placeholder="Ask a question..." aria-label="Ask a question">
           <button type="button" class="btn btn-primary" id="askButton">Ask</button>
         </div>
       </div>
     </div>
   `;
 
-  dialog
-    .querySelector("#askButton")
-    .addEventListener("click", handleAskButtonClick);
+  const askButton = dialog.querySelector("#askButton");
+  askButton.addEventListener("click", handleAskButtonClick);
+  
+  const questionInput = dialog.querySelector("#question");
+  questionInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleAskButtonClick();
+    }
+  });
+
   return dialog;
 }
 
@@ -165,7 +174,9 @@ async function askQuestion(question) {
       }
     );
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
     const data = await response.json();
     console.log("API response:", data);
@@ -176,7 +187,12 @@ async function askQuestion(question) {
     localStorage.setItem("sessions", JSON.stringify(sessions));
     displayConversation(conversation);
   } catch (error) {
-    document.getElementById("answer").innerText = `Error: ${error.message}`;
+    console.error("Error in askQuestion:", error);
+    document.getElementById("answer").innerHTML = `
+      <div class="alert alert-danger" role="alert">
+        Error: ${error.message}. Please try again later.
+      </div>
+    `;
   }
 }
 
