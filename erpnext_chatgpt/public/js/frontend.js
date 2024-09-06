@@ -332,7 +332,7 @@ async function loadDompurify() {
   });
 }
 
-class ERPNextRenderer extends marked.Renderer {
+class ERPNextRenderer {
   // Block-level renderer methods
   heading(token) {
     const escapedText = token.text.toLowerCase().replace(/[^\w]+/g, "-");
