@@ -6,10 +6,6 @@ let currentSessionIndex = null;
 async function initializeChat() {
   await loadMarkedJs();
   await loadDompurify();
-  const erpNextRenderer = new ERPNextRenderer();
-  marked.setOptions({
-    renderer: erpNextRenderer,
-  });
 
   checkUserPermissionsAndShowButton();
 }
@@ -315,7 +311,149 @@ async function loadMarkedJs() {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-    script.onload = resolve;
+    script.onload = () => {
+      class ERPNextRenderer extends marked.Renderer {
+        // Block-level renderer methods
+        heading(token) {
+          const escapedText = token.text.toLowerCase().replace(/[^\w]+/g, "-");
+          return `
+            <h${token.depth} class="erpnext-heading" id="${escapedText}">
+              ${token.text}
+              <a href="#${escapedText}" class="anchor-link">
+                <i class="fa fa-link" aria-hidden="true"></i>
+              </a>
+            </h${token.depth}>
+          `;
+        }
+
+        code(token) {
+          const lang = token.lang || "plaintext";
+          return `<pre><code class="hljs language-${lang}">${
+            this.options.highlight
+              ? this.options.highlight(token.text, lang)
+              : token.text
+          }</code></pre>`;
+        }
+
+        table(token) {
+          let header = "";
+          let body = "";
+
+          // Generate table header
+          header =
+            "<thead><tr>" +
+            token.header.map((cell) => this.tablecell(cell)).join("") +
+            "</tr></thead>";
+
+          // Generate table body
+          body =
+            "<tbody>" +
+            token.rows
+              .map((row) => {
+                return (
+                  "<tr>" +
+                  row.map((cell) => this.tablecell(cell)).join("") +
+                  "</tr>"
+                );
+              })
+              .join("") +
+            "</tbody>";
+
+          return `
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover">
+                ${header}
+                ${body}
+              </table>
+            </div>
+          `;
+        }
+
+        tablecell(token) {
+          const type = token.header ? "th" : "td";
+          const classes = token.align ? `class="text-${token.align}"` : "";
+          return `<${type} ${classes}>${this.parseInline(
+            token.tokens
+          )}</${type}>`;
+        }
+
+        list(token) {
+          const type = token.ordered ? "ol" : "ul";
+          const start = token.start === "" ? "" : ` start="${token.start}"`;
+          return `<${type}${start}>\n${token.items
+            .map((item) => this.listitem(item))
+            .join("")}</${type}>\n`;
+        }
+
+        listitem(token) {
+          const checkbox = token.task ? this.checkbox(token.checked) : "";
+          const content = this.parseInline(token.tokens);
+          return `<li>${checkbox}${content}</li>\n`;
+        }
+
+        checkbox(checked) {
+          return `<input type="checkbox" ${
+            checked ? "checked" : ""
+          } disabled> `;
+        }
+
+        // Inline-level renderer methods
+        link(token) {
+          const href = this.cleanUrl(token.href);
+          if (href === null) {
+            return token.text;
+          }
+          return `<a href="${href}" target="_blank" rel="noopener noreferrer" title="${
+            token.title || ""
+          }">${token.text}</a>`;
+        }
+
+        image(token) {
+          const src = this.cleanUrl(token.href);
+          if (src === null) {
+            return token.text;
+          }
+          return `<img src="${src}" alt="${token.text}" title="${
+            token.title || ""
+          }" class="img-fluid rounded">`;
+        }
+
+        // Helper method to parse inline tokens
+        parseInline(tokens) {
+          return tokens
+            .map((token) => {
+              switch (token.type) {
+                case "text":
+                case "escape":
+                case "tag":
+                  return this.text(token);
+                case "link":
+                  return this.link(token);
+                case "image":
+                  return this.image(token);
+                case "strong":
+                  return this.strong(token);
+                case "em":
+                  return this.em(token);
+                case "codespan":
+                  return this.codespan(token);
+                case "br":
+                  return this.br(token);
+                case "del":
+                  return this.del(token);
+                default:
+                  return "";
+              }
+            })
+            .join("");
+        }
+      }
+      const erpNextRenderer = new ERPNextRenderer();
+      marked.setOptions({
+        renderer: erpNextRenderer,
+      });
+      resolve();
+    };
     script.onerror = () => reject(new Error("Failed to load marked.js"));
     document.head.appendChild(script);
   });
@@ -330,135 +468,4 @@ async function loadDompurify() {
     script.onerror = () => reject(new Error("Failed to load dompurify"));
     document.head.appendChild(script);
   });
-}
-
-class ERPNextRenderer {
-  // Block-level renderer methods
-  heading(token) {
-    const escapedText = token.text.toLowerCase().replace(/[^\w]+/g, "-");
-    return `
-      <h${token.depth} class="erpnext-heading" id="${escapedText}">
-        ${token.text}
-        <a href="#${escapedText}" class="anchor-link">
-          <i class="fa fa-link" aria-hidden="true"></i>
-        </a>
-      </h${token.depth}>
-    `;
-  }
-
-  code(token) {
-    const lang = token.lang || "plaintext";
-    return `<pre><code class="hljs language-${lang}">${
-      this.options.highlight
-        ? this.options.highlight(token.text, lang)
-        : token.text
-    }</code></pre>`;
-  }
-
-  table(token) {
-    let header = "";
-    let body = "";
-
-    // Generate table header
-    header =
-      "<thead><tr>" +
-      token.header.map((cell) => this.tablecell(cell)).join("") +
-      "</tr></thead>";
-
-    // Generate table body
-    body =
-      "<tbody>" +
-      token.rows
-        .map((row) => {
-          return (
-            "<tr>" + row.map((cell) => this.tablecell(cell)).join("") + "</tr>"
-          );
-        })
-        .join("") +
-      "</tbody>";
-
-    return `
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-          ${header}
-          ${body}
-        </table>
-      </div>
-    `;
-  }
-
-  tablecell(token) {
-    const type = token.header ? "th" : "td";
-    const classes = token.align ? `class="text-${token.align}"` : "";
-    return `<${type} ${classes}>${this.parseInline(token.tokens)}</${type}>`;
-  }
-
-  list(token) {
-    const type = token.ordered ? "ol" : "ul";
-    const start = token.start === "" ? "" : ` start="${token.start}"`;
-    return `<${type}${start}>\n${token.items
-      .map((item) => this.listitem(item))
-      .join("")}</${type}>\n`;
-  }
-
-  listitem(token) {
-    const checkbox = token.task ? this.checkbox(token.checked) : "";
-    const content = this.parseInline(token.tokens);
-    return `<li>${checkbox}${content}</li>\n`;
-  }
-
-  checkbox(checked) {
-    return `<input type="checkbox" ${checked ? "checked" : ""} disabled> `;
-  }
-
-  // Inline-level renderer methods
-  link(token) {
-    const href = this.cleanUrl(token.href);
-    if (href === null) {
-      return token.text;
-    }
-    return `<a href="${href}" target="_blank" rel="noopener noreferrer" title="${
-      token.title || ""
-    }">${token.text}</a>`;
-  }
-
-  image(token) {
-    const src = this.cleanUrl(token.href);
-    if (src === null) {
-      return token.text;
-    }
-    return `<img src="${src}" alt="${token.text}" title="${
-      token.title || ""
-    }" class="img-fluid rounded">`;
-  }
-
-  // Helper method to parse inline tokens
-  parseInline(tokens) {
-    return tokens
-      .map((token) => {
-        switch (token.type) {
-          case "text":
-          case "escape":
-          case "tag":
-            return this.text(token);
-          case "link":
-            return this.link(token);
-          case "image":
-            return this.image(token);
-          case "strong":
-            return this.strong(token);
-          case "em":
-            return this.em(token);
-          case "codespan":
-            return this.codespan(token);
-          case "br":
-            return this.br(token);
-          case "del":
-            return this.del(token);
-          default:
-            return "";
-        }
-      })
-      .join("");
-  }
 }
