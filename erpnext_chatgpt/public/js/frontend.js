@@ -251,10 +251,13 @@ function renderMessageContent(content) {
   if (content === null) return "<em>null</em>";
   if (typeof content === "boolean") return `<strong>${content}</strong>`;
   if (typeof content === "number") return `<span>${content}</span>`;
-  if (typeof content === "string")
-    return DOMPurify.sanitize(
+  if (typeof content === "string") {
+    const parsed = DOMPurify.sanitize(
       marked.parse(content, { renderer: getBootstrapRenderer() })
     );
+    console.log(parsed);
+    return parsed;
+  }
   if (Array.isArray(content)) {
     return `<ul class="list-group">${content
       .map(

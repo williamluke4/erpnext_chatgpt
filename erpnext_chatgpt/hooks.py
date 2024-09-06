@@ -8,7 +8,7 @@ app_email = "williamluke4@gmail.com"
 app_license = "MIT"
 
 # Include JS and CSS files in header of desk.html
-app_include_js = "/assets/erpnext_chatgpt/js/frontend.js?v=3"
+app_include_js = "/assets/erpnext_chatgpt/js/frontend.js?v=4"
 
 # Doctype JavaScript
 doctype_js = {
