@@ -5,6 +5,7 @@ let currentSessionIndex = null;
 
 async function initializeChat() {
   await loadMarkedJs();
+  await loadDompurify();
   checkUserPermissionsAndShowButton();
 }
 
@@ -84,7 +85,7 @@ function createChatDialog() {
 
   const askButton = dialog.querySelector("#askButton");
   askButton.addEventListener("click", handleAskButtonClick);
-  
+
   const questionInput = dialog.querySelector("#question");
   questionInput.addEventListener("keypress", (event) => {
     if (event.key === "Enter") {
@@ -250,11 +251,10 @@ function renderMessageContent(content) {
   if (content === null) return "<em>null</em>";
   if (typeof content === "boolean") return `<strong>${content}</strong>`;
   if (typeof content === "number") return `<span>${content}</span>`;
-  if (typeof content === "string") {
-    return isMarkdown(content)
-      ? marked.parse(content, { renderer: getBootstrapRenderer() })
-      : `<p>${escapeHTML(content)}</p>`;
-  }
+  if (typeof content === "string")
+    return DOMPurify.sanitize(
+      marked.parse(content, { renderer: getBootstrapRenderer() })
+    );
   if (Array.isArray(content)) {
     return `<ul class="list-group">${content
       .map(
@@ -265,7 +265,7 @@ function renderMessageContent(content) {
   }
   if (typeof content === "object") return renderCollapsibleObject(content);
 
-  return "<em>Unsupported type</em>";
+  return `<em>Unsupported type: ${typeof content}</em>`;
 }
 
 function renderCollapsibleObject(object) {
@@ -328,6 +328,17 @@ async function loadMarkedJs() {
     script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
     script.onload = resolve;
     script.onerror = () => reject(new Error("Failed to load marked.js"));
+    document.head.appendChild(script);
+  });
+}
+
+async function loadDompurify() {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src =
+      "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js";
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Failed to load dompurify"));
     document.head.appendChild(script);
   });
 }
