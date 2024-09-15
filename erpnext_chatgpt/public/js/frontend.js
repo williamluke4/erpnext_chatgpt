@@ -114,8 +114,18 @@ function loadSessions() {
   sessionsList.innerHTML = "";
   sessions.forEach((session, index) => {
     const sessionItem = createSessionListItem(session, index);
+    sessionItem.addEventListener("click", () => loadSession(index)); // Correctly attaching the event listener
     sessionsList.appendChild(sessionItem);
   });
+}
+
+function loadSession(index) {
+  currentSessionIndex = index;
+  const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
+  const session = sessions[index];
+  if (session) {
+    displayConversation(session.conversation);
+  }
 }
 
 function createSessionListItem(session, index) {
