@@ -317,6 +317,15 @@ function escapeHTML(text) {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
+function cleanUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.href;
+  } catch (error) {
+    return null;
+  }
+}
+
 async function loadMarkedJs() {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -334,6 +343,10 @@ async function loadMarkedJs() {
               </a>
             </h${token.depth}>
           `;
+        }
+
+        cleanUrl(url) {
+          return cleanUrl(url);
         }
 
         code(token) {
