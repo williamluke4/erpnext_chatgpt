@@ -114,8 +114,18 @@ function loadSessions() {
   sessionsList.innerHTML = "";
   sessions.forEach((session, index) => {
     const sessionItem = createSessionListItem(session, index);
+    sessionItem.addEventListener("click", () => loadSession(index)); // Correctly attaching the event listener
     sessionsList.appendChild(sessionItem);
   });
+}
+
+function loadSession(index) {
+  currentSessionIndex = index;
+  const sessions = JSON.parse(localStorage.getItem("sessions")) || [];
+  const session = sessions[index];
+  if (session) {
+    displayConversation(session.conversation);
+  }
 }
 
 function createSessionListItem(session, index) {
@@ -307,6 +317,15 @@ function escapeHTML(text) {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
+function cleanUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.href;
+  } catch (error) {
+    return null;
+  }
+}
+
 async function loadMarkedJs() {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -324,6 +343,10 @@ async function loadMarkedJs() {
               </a>
             </h${token.depth}>
           `;
+        }
+
+        cleanUrl(url) {
+          return cleanUrl(url);
         }
 
         code(token) {
